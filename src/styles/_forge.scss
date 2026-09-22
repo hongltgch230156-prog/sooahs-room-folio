@@ -1,0 +1,353 @@
+@use "./variables.scss" as vars;
+
+.forge-modal {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+.forge-modal button,
+.forge-modal input {
+  font-family: inherit;
+}
+.forge-header {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 78px;
+  margin-bottom: 18px;
+}
+.forge-close-square {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 52px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  border: 4px solid vars.$base-purple;
+  color: vars.$base-dark-purple;
+  background: #efe7f5;
+  font-size: 2.6rem;
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: 0 4px 0 rgba(108, 63, 124, 0.08);
+}
+.forge-title {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 320px;
+  padding: 12px 30px;
+  border-radius: 999px;
+  border: 4px solid vars.$base-purple;
+  background: rgba(205, 179, 214, 0.6);
+  color: vars.$base-dark-purple;
+  font-size: clamp(1.6rem, 2vw, 2.3rem);
+  box-shadow: 0 4px 0 rgba(108, 63, 124, 0.08);
+  font-family: 'Baloo 2', sans-serif;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+}
+.forge-body {
+  display: grid;
+  grid-template-columns: 1.05fr 1.35fr;
+  gap: 26px;
+  min-height: 620px;
+}
+.forge-panel {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 26px;
+}
+.forge-source-panel {
+  padding: 16px 18px 0;
+  border: 4px solid vars.$base-purple;
+  height: 100%;
+}
+.forge-output-panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border: 4px solid vars.$base-purple;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 18px 20px 18px;
+  min-height: 560px;
+}
+.forge-section-label {
+  margin: 0;
+  color: vars.$base-dark-purple;
+  font-size: 1rem;
+  text-transform: uppercase;
+  font-family: 'Baloo 2', sans-serif;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+}
+.forge-upload-headers {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  margin-bottom: 12px;
+  padding: 0 4px;
+}
+.forge-header-col {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.forge-mode-toggle {
+  display: flex;
+  border: 3px solid vars.$base-purple;
+  border-radius: 99px;
+  padding: 4px;
+  gap: 0;
+  margin-bottom: 24px;
+}
+.forge-mode-btn {
+  flex: 1;
+  border: none;
+  background: transparent;
+  border-radius: 99px;
+  min-height: 44px;
+  font-size: 1.05rem;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 600;
+  color: rgba(108, 63, 124, 0.55);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.forge-mode-btn.is-active {
+  background: rgba(205, 179, 214, 0.65);
+  box-shadow: none;
+  font-weight: 800;
+  color: vars.$base-dark-purple;
+}
+.forge-upload-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  margin-bottom: 18px;
+}
+.forge-upload-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+  border: 3px solid vars.$base-purple;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+.forge-upload-card:hover {
+  transform: translateY(-1px);
+  border-color: vars.$base-dark-purple;
+}
+.forge-upload-card.is-disabled {
+  opacity: 0.45;
+  pointer-events: none;
+}
+.forge-upload-card .forge-input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.forge-card-tag {
+  font-size: 0.85rem;
+  color: rgba(36, 31, 40, 0.55);
+  font-family: 'Nunito', sans-serif;
+  font-weight: 500;
+}
+.forge-card-visual {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 82px;
+  height: 82px;
+  border-radius: 18px;
+  color: vars.$base-purple;
+  margin-top: 18px;
+}
+.forge-card-icon {
+  width: 54px;
+  height: 54px;
+}
+.forge-card-text {
+  margin-top: 6px;
+  font-size: 1.05rem;
+  color: vars.$base-dark-purple;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 600;
+}
+.forge-preview {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: none;
+  z-index: 1;
+}
+.forge-upload-card.is-filled .forge-preview {
+  display: block;
+}
+.forge-upload-card.is-filled .forge-card-visual,
+.forge-upload-card.is-filled .forge-card-text {
+  display: none;
+}
+.forge-submit-btn,
+.forge-export-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 58px;
+  border: 3px solid vars.$base-purple;
+  border-radius: 18px;
+  background: rgba(205, 179, 214, 0.38);
+  color: vars.$base-dark-purple;
+  font-size: 1.2rem;
+  cursor: pointer;
+  box-shadow: 0 4px 0 rgba(108, 63, 124, 0.08);
+  font-family: 'Baloo 2', sans-serif;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+}
+.forge-submit-btn {
+  margin-top: 6px;
+}
+.forge-helper-text {
+  margin: 18px 0 22px;
+  font-size: 0.98rem;
+  color: rgba(108, 63, 124, 0.8);
+  line-height: 1.5;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 500;
+}
+.forge-helper-text strong {
+  font-weight: 800; 
+  color: vars.$base-dark-purple;
+}
+.forge-output-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 8px;
+  padding: 0 6px;
+}
+.result-title {
+  font-family: 'Baloo 2', sans-serif;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: vars.$base-dark-purple;
+  font-size: 0.85rem;
+}
+.result-hint {
+  font-family: 'Nunito', sans-serif;
+  font-weight: 500;
+  color: rgba(36, 31, 40, 0.55);
+  font-size: 0.75rem;
+}
+.forge-output-stage {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 26px;
+  background: rgba(255, 255, 255, 0.12);
+  padding: 24px 20px 14px;
+  --result-image: none;
+  border: 3px solid vars.$base-purple; 
+  overflow: hidden;
+}
+.forge-output-stage.is-ready .forge-viewer {
+  background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.18), rgba(205, 179, 214, 0.18)), var(--result-image);
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  border-radius: 24px;
+  box-shadow: inset 0 0 0 2px rgba(110, 94, 156, 0.18);
+}
+.forge-output-stage.is-ready .forge-model {
+  opacity: 0.25;
+}
+.forge-viewer {
+  position: relative;
+  width: min(260px, 46vw);
+  height: min(260px, 46vw);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  perspective: 900px;
+  user-select: none;
+  cursor: grab;
+  touch-action: none;
+}
+.forge-model {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  transform-style: preserve-3d;
+  transform: rotateX(25deg) rotateY(-20deg) scale(1.1);
+  transition: transform 0.15s ease;
+}
+.forge-face {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 120px;
+  height: 120px;
+  border: 3px solid vars.$base-purple;
+  background: rgba(205, 179, 214, 0.4);
+  color: vars.$base-dark-purple;
+  font-size: 2rem;
+  box-shadow: inset 0 0 0 1px rgba(108, 63, 124, 0.15);
+  font-family: 'Baloo 2', sans-serif;
+  font-weight: 800;
+}
+.face-front { transform: translateZ(60px); }
+.face-back { transform: rotateY(180deg) translateZ(60px); }
+.face-left { transform: rotateY(-90deg) translateZ(60px); }
+.face-right { transform: rotateY(90deg) translateZ(60px); }
+.face-top { transform: rotateX(90deg) translateZ(60px); }
+.face-bottom { transform: rotateX(-90deg) translateZ(60px); }
+
+.forge-output-caption {
+  margin-top: 22px;
+  color: rgba(36, 31, 40, 0.7);
+  font-size: 1.05rem;
+  text-align: center;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 600;
+}
+.forge-export-btn {
+  margin-top: 18px;
+}
+
+@media (max-width: 900px) {
+  .work, .about, .contact {
+    width: min(960px, 92vw);
+    min-height: auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .work, .about, .contact {
+    width: min(520px, 93vw);
+    padding: 14px 12px 20px;
+    border-width: 5px;
+  }
+}
