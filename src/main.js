@@ -1749,13 +1749,13 @@ let currentHoveredObject = null;
 
 const socialLinks = {
   GitHub:
-    "https://github.com/andrewwoan/sooahkimsfolio",
+    "https://youtu.be/pzL_FW80zoY?si=UEiI9wlhhkY5pMi8",
 
   YouTube:
-    "https://youtu.be/AB6sulUMRGE",
+    "https://youtu.be/pzL_FW80zoY?si=UEiI9wlhhkY5pMi8",
 
   Twitter:
-    "https://www.twitter.com/",
+    "https://youtu.be/pzL_FW80zoY?si=UEiI9wlhhkY5pMi8",
 };
 
 const raycaster = new THREE.Raycaster();
