@@ -1,25 +1,28 @@
 import gsap from "gsap";
-
 import { Howl } from "howler";
-
 import * as THREE from "three";
 import { OrbitControls } from "./utils/OrbitControls.js";
 import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
-
 import smokeVertexShader from "./shaders/smoke/vertex.glsl";
 import smokeFragmentShader from "./shaders/smoke/fragment.glsl";
 import themeVertexShader from "./shaders/theme/vertex.glsl";
 import themeFragmentShader from "./shaders/theme/fragment.glsl";
 
-/**  -------------------------- Audio setup -------------------------- */
+/** -------------------------- Audio setup -------------------------- */
 
 // Background Music
+
 let pianoDebounceTimer = null;
+
 let isMusicFaded = false;
+
 const MUSIC_FADE_TIME = 500;
+
 const PIANO_TIMEOUT = 2000;
+
 const BACKGROUND_MUSIC_VOLUME = 1;
+
 const FADED_VOLUME = 0;
 
 const backgroundMusic = new Howl({
@@ -35,6 +38,7 @@ const fadeOutBackgroundMusic = () => {
       FADED_VOLUME,
       MUSIC_FADE_TIME
     );
+
     isMusicFaded = true;
   }
 };
@@ -46,11 +50,13 @@ const fadeInBackgroundMusic = () => {
       BACKGROUND_MUSIC_VOLUME,
       MUSIC_FADE_TIME
     );
+
     isMusicFaded = false;
   }
 };
 
 // Piano
+
 const pianoKeyMap = {
   C1_Key: "Key_24",
   "C#1_Key": "Key_23",
@@ -89,6 +95,7 @@ Object.values(pianoKeyMap).forEach((soundKey) => {
 });
 
 // Button
+
 const buttonSounds = {
   click: new Howl({
     src: ["/audio/sfx/click/bubble.ogg"],
@@ -97,14 +104,17 @@ const buttonSounds = {
   }),
 };
 
-/**  -------------------------- Scene setup -------------------------- */
+/** -------------------------- Scene setup -------------------------- */
+
 const canvas = document.querySelector("#experience-canvas");
+
 const sizes = {
   width: window.innerWidth,
   height: window.innerHeight,
 };
 
 const scene = new THREE.Scene();
+
 scene.background = new THREE.Color("#D9CAD1");
 
 const camera = new THREE.PerspectiveCamera(
@@ -120,13 +130,17 @@ const renderer = new THREE.WebGLRenderer({
 });
 
 renderer.setSize(sizes.width, sizes.height);
+
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
 const controls = new OrbitControls(camera, renderer.domElement);
+
 controls.minDistance = 5;
 controls.maxDistance = 45;
+
 controls.minPolarAngle = 0;
 controls.maxPolarAngle = Math.PI / 2;
+
 controls.minAzimuthAngle = 0;
 controls.maxAzimuthAngle = Math.PI / 2;
 
@@ -135,20 +149,27 @@ controls.dampingFactor = 0.05;
 
 controls.update();
 
-//Set starting camera position
+// Set starting camera position
+
 if (window.innerWidth < 768) {
   camera.position.set(
     29.567116827654726,
     14.018476147584705,
     31.37040363900147
   );
+
   controls.target.set(
     -0.08206262548844094,
     3.3119233527087255,
     -0.7433922282864018
   );
 } else {
-  camera.position.set(17.49173098423395, 9.108969527553887, 17.850992894238058);
+  camera.position.set(
+    17.49173098423395,
+    9.108969527553887,
+    17.850992894238058
+  );
+
   controls.target.set(
     0.4624746759408973,
     1.9719940043010387,
@@ -161,15 +182,19 @@ window.addEventListener("resize", () => {
   sizes.height = window.innerHeight;
 
   // Update Camera
+
   camera.aspect = sizes.width / sizes.height;
   camera.updateProjectionMatrix();
 
   // Update renderer
+
   renderer.setSize(sizes.width, sizes.height);
+
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 });
 
-/**  -------------------------- Modal Stuff -------------------------- */
+/** -------------------------- Modal Stuff -------------------------- */
+
 const modals = {
   work: document.querySelector(".modal.work"),
   about: document.querySelector(".modal.about"),
@@ -179,12 +204,18 @@ const modals = {
 const overlay = document.querySelector(".overlay");
 
 let touchHappened = false;
+
 overlay.addEventListener(
   "touchend",
   (e) => {
     touchHappened = true;
+
     e.preventDefault();
-    const modal = document.querySelector('.modal[style*="display: block"]');
+
+    const modal = document.querySelector(
+      '.modal[style*="display: block"]'
+    );
+
     if (modal) hideModal(modal);
   },
   { passive: false }
@@ -194,8 +225,13 @@ overlay.addEventListener(
   "click",
   (e) => {
     if (touchHappened) return;
+
     e.preventDefault();
-    const modal = document.querySelector('.modal[style*="display: block"]');
+
+    const modal = document.querySelector(
+      '.modal[style*="display: block"]'
+    );
+
     if (modal) hideModal(modal);
   },
   { passive: false }
@@ -204,17 +240,20 @@ overlay.addEventListener(
 document.querySelectorAll(".modal-exit-button").forEach((button) => {
   function handleModalExit(e) {
     e.preventDefault();
+
     const modal = e.target.closest(".modal");
 
     gsap.to(button, {
       scale: 5,
       duration: 0.5,
       ease: "back.out(2)",
+
       onStart: () => {
         gsap.to(button, {
           scale: 1,
           duration: 0.5,
           ease: "back.out(2)",
+
           onComplete: () => {
             gsap.set(button, {
               clearProps: "all",
@@ -225,6 +264,7 @@ document.querySelectorAll(".modal-exit-button").forEach((button) => {
     });
 
     buttonSounds.click.play();
+
     hideModal(modal);
   }
 
@@ -232,6 +272,7 @@ document.querySelectorAll(".modal-exit-button").forEach((button) => {
     "touchend",
     (e) => {
       touchHappened = true;
+
       handleModalExit(e);
     },
     { passive: false }
@@ -241,6 +282,7 @@ document.querySelectorAll(".modal-exit-button").forEach((button) => {
     "click",
     (e) => {
       if (touchHappened) return;
+
       handleModalExit(e);
     },
     { passive: false }
@@ -254,19 +296,24 @@ const showModal = (modal) => {
   overlay.style.display = "block";
 
   isModalOpen = true;
+
   controls.enabled = false;
 
   if (currentHoveredObject) {
     playHoverAnimation(currentHoveredObject, false);
+
     currentHoveredObject = null;
   }
+
   document.body.style.cursor = "default";
+
   currentIntersects = [];
 
   gsap.set(modal, {
     opacity: 0,
     scale: 0,
   });
+
   gsap.set(overlay, {
     opacity: 0,
   });
@@ -286,6 +333,7 @@ const showModal = (modal) => {
 
 const hideModal = (modal) => {
   isModalOpen = false;
+
   controls.enabled = true;
 
   gsap.to(overlay, {
@@ -298,6 +346,7 @@ const hideModal = (modal) => {
     scale: 0,
     duration: 0.5,
     ease: "back.in(2)",
+
     onComplete: () => {
       modal.style.display = "none";
       overlay.style.display = "none";
@@ -305,23 +354,35 @@ const hideModal = (modal) => {
   });
 };
 
-/**  -------------------------- Loading Screen & Intro Animation -------------------------- */
+/** -------------------------- Loading Screen & Intro Animation -------------------------- */
 
 const manager = new THREE.LoadingManager();
 
 const loadingScreen = document.querySelector(".loading-screen");
-const loadingScreenButton = document.querySelector(".loading-screen-button");
+
+const loadingScreenButton = document.querySelector(
+  ".loading-screen-button"
+);
+
 const noSoundButton = document.querySelector(".no-sound-button");
 
 manager.onLoad = function () {
   loadingScreenButton.style.border = "8px solid #2a0f4e";
+
   loadingScreenButton.style.background = "#401d49";
+
   loadingScreenButton.style.color = "#e6dede";
-  loadingScreenButton.style.boxShadow = "rgba(0, 0, 0, 0.24) 0px 3px 8px";
+
+  loadingScreenButton.style.boxShadow =
+    "rgba(0, 0, 0, 0.24) 0px 3px 8px";
+
   loadingScreenButton.textContent = "Enter!";
+
   loadingScreenButton.style.cursor = "pointer";
+
   loadingScreenButton.style.transition =
     "transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)";
+
   let isDisabled = false;
 
   noSoundButton.textContent = "Enter without Sound :(";
@@ -330,28 +391,81 @@ manager.onLoad = function () {
     if (isDisabled) return;
 
     noSoundButton.textContent = "";
+
     loadingScreenButton.style.cursor = "default";
+
     loadingScreenButton.style.border = "8px solid #6e5e9c";
+
     loadingScreenButton.style.background = "#ead7ef";
+
     loadingScreenButton.style.color = "#6e5e9c";
+
     loadingScreenButton.style.boxShadow = "none";
-    loadingScreenButton.textContent = "~ 안녕하세요 ~";
+
+    // 1. Khi vừa bấm vào, ta tạm thời để rỗng để nhường chỗ cho video
+
+    loadingScreenButton.style.opacity = "0";
+
+    loadingScreenButton.textContent = "";
+
     loadingScreen.style.background = "#ead7ef";
+
     isDisabled = true;
 
     toggleFavicons();
 
     if (!withSound) {
       isMuted = true;
+
       updateMuteState(true);
 
       soundOnSvg.style.display = "none";
+
       soundOffSvg.style.display = "block";
     } else {
       backgroundMusic.play();
     }
 
-    playReveal();
+    // === HIỆU ỨNG VIDEO MP4 3 CHÚ VỊT FULL MÀN HÌNH ===
+
+    const duckOverlay = document.getElementById("duck-overlay");
+
+    const duckVideo = document.getElementById("duck-video");
+
+    duckOverlay.classList.add("active");
+
+    duckVideo.currentTime = 0;
+
+    duckVideo.play();
+
+    // Lắng nghe sự kiện khi video chạy đến giây cuối cùng
+
+    duckVideo.onended = () => {
+      // 2. VIDEO XONG MỚI HIỆN CHỮ "hé lô nhen"
+
+      loadingScreenButton.textContent = "hé lô nhen";
+
+      loadingScreenButton.style.opacity = "1";
+
+      // 3. Dùng GSAP làm mờ video đi, lúc này màn hình loading
+      // (có chữ hé lô nhen) sẽ lộ ra
+
+      gsap.to(duckOverlay, {
+        opacity: 0,
+        duration: 0.8,
+
+        onComplete: () => {
+          duckOverlay.style.display = "none";
+
+          // Ẩn hẳn video khỏi DOM
+
+          playReveal();
+
+          // Mở bối cảnh 3D
+          // (đồng thời sẽ làm mờ dần bảng loading đi)
+        },
+      });
+    };
   }
 
   loadingScreenButton.addEventListener("mouseenter", () => {
@@ -360,12 +474,15 @@ manager.onLoad = function () {
 
   loadingScreenButton.addEventListener("touchend", (e) => {
     touchHappened = true;
+
     e.preventDefault();
+
     handleEnter();
   });
 
   loadingScreenButton.addEventListener("click", (e) => {
     if (touchHappened) return;
+
     handleEnter(true);
   });
 
@@ -375,6 +492,7 @@ manager.onLoad = function () {
 
   noSoundButton.addEventListener("click", (e) => {
     if (touchHappened) return;
+
     handleEnter(false);
   });
 };
@@ -391,12 +509,16 @@ function playReveal() {
     loadingScreen,
     {
       y: "200vh",
-      transform: "perspective(1000px) rotateX(45deg) rotateY(-35deg)",
+      transform:
+        "perspective(1000px) rotateX(45deg) rotateY(-35deg)",
       duration: 1.2,
       ease: "back.in(1.8)",
+
       onComplete: () => {
         isModalOpen = false;
+
         playIntroAnimation();
+
         loadingScreen.remove();
       },
     },
@@ -411,6 +533,7 @@ function playIntroAnimation() {
       ease: "back.out(1.8)",
     },
   });
+
   t1.timeScale(0.8);
 
   t1.to(plank1.scale, {
@@ -460,6 +583,7 @@ function playIntroAnimation() {
       ease: "back.out(1.8)",
     },
   });
+
   tFrames.timeScale(0.8);
 
   tFrames
@@ -493,6 +617,7 @@ function playIntroAnimation() {
       ease: "back.out(1.8)",
     },
   });
+
   t2.timeScale(0.8);
 
   t2.to(boba.scale, {
@@ -535,6 +660,7 @@ function playIntroAnimation() {
       ease: "back.out(1.8)",
     },
   });
+
   tFlowers.timeScale(0.8);
 
   tFlowers
@@ -586,6 +712,7 @@ function playIntroAnimation() {
       ease: "back.out(1.8)",
     },
   });
+
   tBoxes.timeScale(0.8);
 
   tBoxes
@@ -620,6 +747,7 @@ function playIntroAnimation() {
       ease: "back.out(1.8)",
     },
   });
+
   tLamp.timeScale(0.8);
 
   tLamp.to(lamp.scale, {
@@ -634,6 +762,7 @@ function playIntroAnimation() {
       ease: "back.out(1.8)",
     },
   });
+
   tSlippers.timeScale(0.8);
 
   tSlippers
@@ -659,6 +788,7 @@ function playIntroAnimation() {
       ease: "back.out(1.8)",
     },
   });
+
   tEggs.timeScale(0.8);
 
   tEggs
@@ -693,6 +823,7 @@ function playIntroAnimation() {
       ease: "back.out(1.8)",
     },
   });
+
   tFish.timeScale(0.8);
 
   tFish.to(fish.scale, {
@@ -707,6 +838,7 @@ function playIntroAnimation() {
       ease: "back.out(1.7)",
     },
   });
+
   lettersTl.timeScale(0.8);
 
   lettersTl
@@ -736,7 +868,6 @@ function playIntroAnimation() {
       },
       ">-0.2"
     )
-
     .to(
       letter2.position,
       {
@@ -766,7 +897,6 @@ function playIntroAnimation() {
       },
       ">-0.2"
     )
-
     .to(
       letter3.position,
       {
@@ -796,7 +926,6 @@ function playIntroAnimation() {
       },
       ">-0.2"
     )
-
     .to(
       letter4.position,
       {
@@ -826,7 +955,6 @@ function playIntroAnimation() {
       },
       ">-0.2"
     )
-
     .to(
       letter5.position,
       {
@@ -856,7 +984,6 @@ function playIntroAnimation() {
       },
       ">-0.2"
     )
-
     .to(
       letter6.position,
       {
@@ -886,7 +1013,6 @@ function playIntroAnimation() {
       },
       ">-0.2"
     )
-
     .to(
       letter7.position,
       {
@@ -916,7 +1042,6 @@ function playIntroAnimation() {
       },
       ">-0.2"
     )
-
     .to(
       letter8.position,
       {
@@ -951,6 +1076,7 @@ function playIntroAnimation() {
     defaults: {
       duration: 0.4,
       ease: "back.out(1.7)",
+
       onComplete: () => {
         setTimeout(() => {
           createDelayedHitboxes();
@@ -958,6 +1084,7 @@ function playIntroAnimation() {
       },
     },
   });
+
   pianoKeysTl.timeScale(1.2);
 
   const pianoKeys = [
@@ -1021,32 +1148,45 @@ function playIntroAnimation() {
   });
 }
 
-/**  -------------------------- Loaders & Texture Preparations -------------------------- */
+/** -------------------------- Loaders & Texture Preparations -------------------------- */
+
 const textureLoader = new THREE.TextureLoader();
 
 const dracoLoader = new DRACOLoader();
+
 dracoLoader.setDecoderPath("/draco/");
 
 const loader = new GLTFLoader(manager);
+
 loader.setDRACOLoader(dracoLoader);
 
 const environmentMap = new THREE.CubeTextureLoader()
   .setPath("textures/skybox/")
-  .load(["px.webp", "nx.webp", "py.webp", "ny.webp", "pz.webp", "nz.webp"]);
+  .load([
+    "px.webp",
+    "nx.webp",
+    "py.webp",
+    "ny.webp",
+    "pz.webp",
+    "nz.webp",
+  ]);
 
 const textureMap = {
   First: {
     day: "/textures/room/day/first_texture_set_day.webp",
     night: "/textures/room/night/first_texture_set_night.webp",
   },
+
   Second: {
     day: "/textures/room/day/second_texture_set_day.webp",
     night: "/textures/room/night/second_texture_set_night.webp",
   },
+
   Third: {
     day: "/textures/room/day/third_texture_set_day.webp",
     night: "/textures/room/night/third_texture_set_night.webp",
   },
+
   Fourth: {
     day: "/textures/room/day/fourth_texture_set_day.webp",
     night: "/textures/room/night/fourth_texture_set_night.webp",
@@ -1060,23 +1200,30 @@ const loadedTextures = {
 
 Object.entries(textureMap).forEach(([key, paths]) => {
   // Load and configure day texture
+
   const dayTexture = textureLoader.load(paths.day);
+
   dayTexture.flipY = false;
   dayTexture.colorSpace = THREE.SRGBColorSpace;
   dayTexture.minFilter = THREE.LinearFilter;
   dayTexture.magFilter = THREE.LinearFilter;
+
   loadedTextures.day[key] = dayTexture;
 
   // Load and configure night texture
+
   const nightTexture = textureLoader.load(paths.night);
+
   nightTexture.flipY = false;
   nightTexture.colorSpace = THREE.SRGBColorSpace;
   nightTexture.minFilter = THREE.LinearFilter;
   nightTexture.magFilter = THREE.LinearFilter;
+
   loadedTextures.night[key] = nightTexture;
 });
 
 // Reuseable Materials
+
 const glassMaterial = new THREE.MeshPhysicalMaterial({
   transmission: 1,
   opacity: 1,
@@ -1101,15 +1248,20 @@ const createMaterialForTextureSet = (textureSet) => {
     uniforms: {
       uDayTexture1: { value: loadedTextures.day.First },
       uNightTexture1: { value: loadedTextures.night.First },
+
       uDayTexture2: { value: loadedTextures.day.Second },
       uNightTexture2: { value: loadedTextures.night.Second },
+
       uDayTexture3: { value: loadedTextures.day.Third },
       uNightTexture3: { value: loadedTextures.night.Third },
+
       uDayTexture4: { value: loadedTextures.day.Fourth },
       uNightTexture4: { value: loadedTextures.night.Fourth },
+
       uMixRatio: { value: 0 },
       uTextureSet: { value: textureSet },
     },
+
     vertexShader: themeVertexShader,
     fragmentShader: themeFragmentShader,
   });
@@ -1132,52 +1284,66 @@ const roomMaterials = {
 };
 
 // Smoke Shader setup
+
 const smokeGeometry = new THREE.PlaneGeometry(1, 1, 16, 64);
+
 smokeGeometry.translate(0, 0.5, 0);
+
 smokeGeometry.scale(0.33, 1, 0.33);
 
 const perlinTexture = textureLoader.load("/shaders/perlin.png");
+
 perlinTexture.wrapS = THREE.RepeatWrapping;
 perlinTexture.wrapT = THREE.RepeatWrapping;
 
 const smokeMaterial = new THREE.ShaderMaterial({
   vertexShader: smokeVertexShader,
   fragmentShader: smokeFragmentShader,
+
   uniforms: {
     uTime: new THREE.Uniform(0),
     uPerlinTexture: new THREE.Uniform(perlinTexture),
   },
+
   side: THREE.DoubleSide,
   transparent: true,
   depthWrite: false,
 });
 
 const smoke = new THREE.Mesh(smokeGeometry, smokeMaterial);
+
 smoke.position.y = 1.83;
+
 scene.add(smoke);
 
 const videoElement = document.createElement("video");
+
 videoElement.src = "/textures/video/Screen.mp4";
 videoElement.loop = true;
 videoElement.muted = true;
 videoElement.playsInline = true;
 videoElement.autoplay = true;
+
 videoElement.play();
 
 const videoTexture = new THREE.VideoTexture(videoElement);
+
 videoTexture.colorSpace = THREE.SRGBColorSpace;
 videoTexture.flipY = false;
 
-/**  -------------------------- Model and Mesh Setup -------------------------- */
+/** -------------------------- Model and Mesh Setup -------------------------- */
 
 // LOL DO NOT DO THIS USE A FUNCTION TO AUTOMATE THIS PROCESS HAHAHAAHAHAHAHAHAHA
+
 let fish;
 let coffeePosition;
 let hourHand;
 let minuteHand;
 let chairTop;
+
 const xAxisFans = [];
 const yAxisFans = [];
+
 let plank1,
   plank2,
   workBtn,
@@ -1188,7 +1354,14 @@ let plank1,
   youtube,
   twitter;
 
-let letter1, letter2, letter3, letter4, letter5, letter6, letter7, letter8;
+let letter1,
+  letter2,
+  letter3,
+  letter4,
+  letter5,
+  letter6,
+  letter7,
+  letter8;
 
 let C1_Key,
   Cs1_Key,
@@ -1202,6 +1375,7 @@ let C1_Key,
   A1_Key,
   As1_Key,
   B1_Key;
+
 let C2_Key,
   Cs2_Key,
   D2_Key,
@@ -1215,17 +1389,28 @@ let C2_Key,
   As2_Key,
   B2_Key;
 
-let flower1, flower2, flower3, flower4, flower5;
+let flower1,
+  flower2,
+  flower3,
+  flower4,
+  flower5;
 
-let box1, box2, box3;
+let box1,
+  box2,
+  box3;
 
 let lamp;
 
-let slippers1, slippers2;
+let slippers1,
+  slippers2;
 
-let egg1, egg2, egg3;
+let egg1,
+  egg2,
+  egg3;
 
-let frame1, frame2, frame3;
+let frame1,
+  frame2,
+  frame3;
 
 const useOriginalMeshObjects = ["Bulb", "Cactus", "Kirby"];
 
@@ -1304,40 +1489,62 @@ loader.load("/models/Room_Portfolio.glb", (glb) => {
     if (child.isMesh) {
       if (child.name.includes("Fish_Fourth")) {
         fish = child;
+
         child.position.x += 0.04;
         child.position.z -= 0.03;
+
         child.userData.initialPosition = new THREE.Vector3().copy(
           child.position
         );
       }
+
       if (child.name.includes("Chair_Top")) {
         chairTop = child;
-        child.userData.initialRotation = new THREE.Euler().copy(child.rotation);
+
+        child.userData.initialRotation = new THREE.Euler().copy(
+          child.rotation
+        );
       }
 
       if (child.name.includes("Hour_Hand")) {
         hourHand = child;
-        child.userData.initialRotation = new THREE.Euler().copy(child.rotation);
+
+        child.userData.initialRotation = new THREE.Euler().copy(
+          child.rotation
+        );
       }
 
       if (child.name.includes("Minute_Hand")) {
         minuteHand = child;
-        child.userData.initialRotation = new THREE.Euler().copy(child.rotation);
+
+        child.userData.initialRotation = new THREE.Euler().copy(
+          child.rotation
+        );
       }
 
       if (child.name.includes("Coffee")) {
         coffeePosition = child.position.clone();
       }
 
-      if (child.name.includes("Hover") || child.name.includes("Key")) {
-        child.userData.initialScale = new THREE.Vector3().copy(child.scale);
+      if (
+        child.name.includes("Hover") ||
+        child.name.includes("Key")
+      ) {
+        child.userData.initialScale = new THREE.Vector3().copy(
+          child.scale
+        );
+
         child.userData.initialPosition = new THREE.Vector3().copy(
           child.position
         );
-        child.userData.initialRotation = new THREE.Euler().copy(child.rotation);
+
+        child.userData.initialRotation = new THREE.Euler().copy(
+          child.rotation
+        );
       }
 
       // LOL DO NOT DO THIS USE A FUNCTION TO AUTOMATE THIS PROCESS HAHAHAAHAHAHAHAHAHA
+
       if (child.name.includes("Hanging_Plank_1")) {
         plank1 = child;
         child.scale.set(0, 0, 1);
@@ -1443,11 +1650,16 @@ loader.load("/models/Room_Portfolio.glb", (glb) => {
         frame3 = child;
         child.scale.set(0, 0, 0);
       }
+
       Object.keys(pianoKeyMap).forEach((keyName) => {
         if (child.name.includes(keyName)) {
-          const varName = keyName.replace("#", "s").split("_")[0] + "_Key";
+          const varName =
+            keyName.replace("#", "s").split("_")[0] + "_Key";
+
           eval(`${varName} = child`);
+
           child.scale.set(0, 0, 0);
+
           child.userData.initialPosition = new THREE.Vector3().copy(
             child.position
           );
@@ -1494,11 +1706,13 @@ loader.load("/models/Room_Portfolio.glb", (glb) => {
         if (hasIntroAnimation(child.name)) {
           // Create a hitbox for object after intro is done playing,
           // Set an original scale first for the hitbox
+
           child.userData.originalScale = new THREE.Vector3(1, 1, 1);
 
           objectsNeedingHitboxes.push(child);
         } else {
           // Create immediate hitboxes/meshes for objects that DON'T have an intro animation
+
           const raycastObject = createStaticHitbox(child);
 
           if (raycastObject !== child) {
@@ -1506,6 +1720,7 @@ loader.load("/models/Room_Portfolio.glb", (glb) => {
           }
 
           raycasterObjects.push(raycastObject);
+
           hitboxToObjectMap.set(raycastObject, child);
         }
       }
@@ -1523,19 +1738,27 @@ loader.load("/models/Room_Portfolio.glb", (glb) => {
   scene.add(glb.scene);
 });
 
-/**  -------------------------- Raycaster setup -------------------------- */
+/** -------------------------- Raycaster setup -------------------------- */
 
 const raycasterObjects = [];
+
 let currentIntersects = [];
+
 let currentHoveredObject = null;
 
 const socialLinks = {
-  GitHub: "https://github.com/andrewwoan/sooahkimsfolio",
-  YouTube: "https://youtu.be/AB6sulUMRGE",
-  Twitter: "https://www.twitter.com/",
+  GitHub:
+    "https://github.com/andrewwoan/sooahkimsfolio",
+
+  YouTube:
+    "https://youtu.be/AB6sulUMRGE",
+
+  Twitter:
+    "https://www.twitter.com/",
 };
 
 const raycaster = new THREE.Raycaster();
+
 const pointer = new THREE.Vector2();
 
 const hitboxToObjectMap = new Map();
@@ -1548,17 +1771,20 @@ function shouldUseOriginalMesh(objectName) {
 
 function createStaticHitbox(originalObject) {
   // Check if we should use original mesh
+
   if (shouldUseOriginalMesh(originalObject.name)) {
     if (!originalObject.userData.initialScale) {
       originalObject.userData.initialScale = new THREE.Vector3().copy(
         originalObject.scale
       );
     }
+
     if (!originalObject.userData.initialPosition) {
       originalObject.userData.initialPosition = new THREE.Vector3().copy(
         originalObject.position
       );
     }
+
     if (!originalObject.userData.initialRotation) {
       originalObject.userData.initialRotation = new THREE.Euler().copy(
         originalObject.rotation
@@ -1566,6 +1792,7 @@ function createStaticHitbox(originalObject) {
     }
 
     originalObject.userData.originalObject = originalObject;
+
     return originalObject;
   }
 
@@ -1574,11 +1801,13 @@ function createStaticHitbox(originalObject) {
       originalObject.scale
     );
   }
+
   if (!originalObject.userData.initialPosition) {
     originalObject.userData.initialPosition = new THREE.Vector3().copy(
       originalObject.position
     );
   }
+
   if (!originalObject.userData.initialRotation) {
     originalObject.userData.initialRotation = new THREE.Euler().copy(
       originalObject.rotation
@@ -1586,15 +1815,20 @@ function createStaticHitbox(originalObject) {
   }
 
   const currentScale = originalObject.scale.clone();
+
   const hasZeroScale =
-    currentScale.x === 0 || currentScale.y === 0 || currentScale.z === 0;
+    currentScale.x === 0 ||
+    currentScale.y === 0 ||
+    currentScale.z === 0;
 
   if (hasZeroScale && originalObject.userData.originalScale) {
     originalObject.scale.copy(originalObject.userData.originalScale);
   }
 
   const box = new THREE.Box3().setFromObject(originalObject);
+
   const size = box.getSize(new THREE.Vector3());
+
   const center = box.getCenter(new THREE.Vector3());
 
   if (hasZeroScale) {
@@ -1602,7 +1836,12 @@ function createStaticHitbox(originalObject) {
   }
 
   let hitboxGeometry;
-  let sizeMultiplier = { x: 1.1, y: 1.75, z: 1.1 };
+
+  let sizeMultiplier = {
+    x: 1.1,
+    y: 1.75,
+    z: 1.1,
+  };
 
   hitboxGeometry = new THREE.BoxGeometry(
     size.x * sizeMultiplier.x,
@@ -1616,9 +1855,15 @@ function createStaticHitbox(originalObject) {
     visible: false,
   });
 
-  const hitbox = new THREE.Mesh(hitboxGeometry, hitboxMaterial);
+  const hitbox = new THREE.Mesh(
+    hitboxGeometry,
+    hitboxMaterial
+  );
+
   hitbox.position.copy(center);
+
   hitbox.name = originalObject.name + "_Hitbox";
+
   hitbox.userData.originalObject = originalObject;
 
   if (originalObject.name.includes("Headphones")) {
@@ -1639,6 +1884,7 @@ function createDelayedHitboxes() {
     }
 
     raycasterObjects.push(raycastObject);
+
     hitboxToObjectMap.set(raycastObject, child);
   });
 
@@ -1648,6 +1894,7 @@ function createDelayedHitboxes() {
 function handleRaycasterInteraction() {
   if (currentIntersects.length > 0) {
     const hitbox = currentIntersects[0].object;
+
     const object = hitboxToObjectMap.get(hitbox);
 
     if (object.name.includes("Button")) {
@@ -1672,6 +1919,7 @@ function handleRaycasterInteraction() {
           x: object.userData.initialRotation.x + Math.PI / 42,
           duration: 0.4,
           ease: "back.out(2)",
+
           onComplete: () => {
             gsap.to(object.rotation, {
               x: object.userData.initialRotation.x,
@@ -1686,6 +1934,7 @@ function handleRaycasterInteraction() {
     Object.entries(socialLinks).forEach(([key, url]) => {
       if (object.name.includes(key)) {
         const newWindow = window.open();
+
         newWindow.opener = null;
         newWindow.location = url;
         newWindow.target = "_blank";
@@ -1705,13 +1954,16 @@ function handleRaycasterInteraction() {
 
 function playHoverAnimation(objectHitbox, isHovering) {
   let scale = 1.4;
+
   const object = hitboxToObjectMap.get(objectHitbox);
+
   gsap.killTweensOf(object.scale);
   gsap.killTweensOf(object.rotation);
   gsap.killTweensOf(object.position);
 
   if (object.name.includes("Coffee")) {
     gsap.killTweensOf(smoke.scale);
+
     if (isHovering) {
       gsap.to(smoke.scale, {
         x: 1.4,
@@ -1737,6 +1989,7 @@ function playHoverAnimation(objectHitbox, isHovering) {
 
   if (isHovering) {
     // Scale animation for all objects
+
     gsap.to(object.scale, {
       x: object.userData.initialScale.x * scale,
       y: object.userData.initialScale.y * scale,
@@ -1765,7 +2018,10 @@ function playHoverAnimation(objectHitbox, isHovering) {
       });
     }
 
-    if (object.name.includes("Boba") || object.name.includes("Name_Letter")) {
+    if (
+      object.name.includes("Boba") ||
+      object.name.includes("Name_Letter")
+    ) {
       gsap.to(object.position, {
         y: object.userData.initialPosition.y + 0.2,
         duration: 0.5,
@@ -1774,6 +2030,7 @@ function playHoverAnimation(objectHitbox, isHovering) {
     }
   } else {
     // Reset scale for all objects
+
     gsap.to(object.scale, {
       x: object.userData.initialScale.x,
       y: object.userData.initialScale.y,
@@ -1797,7 +2054,10 @@ function playHoverAnimation(objectHitbox, isHovering) {
       });
     }
 
-    if (object.name.includes("Boba") || object.name.includes("Name_Letter")) {
+    if (
+      object.name.includes("Boba") ||
+      object.name.includes("Name_Letter")
+    ) {
       gsap.to(object.position, {
         y: object.userData.initialPosition.y,
         duration: 0.3,
@@ -1809,7 +2069,9 @@ function playHoverAnimation(objectHitbox, isHovering) {
 
 window.addEventListener("mousemove", (e) => {
   touchHappened = false;
+
   pointer.x = (e.clientX / sizes.width) * 2 - 1;
+
   pointer.y = -(e.clientY / sizes.height) * 2 + 1;
 });
 
@@ -1817,8 +2079,11 @@ window.addEventListener(
   "touchstart",
   (e) => {
     if (isModalOpen) return;
+
     e.preventDefault();
+
     pointer.x = (e.touches[0].clientX / sizes.width) * 2 - 1;
+
     pointer.y = -(e.touches[0].clientY / sizes.height) * 2 + 1;
   },
   { passive: false }
@@ -1828,7 +2093,9 @@ window.addEventListener(
   "touchend",
   (e) => {
     if (isModalOpen) return;
+
     e.preventDefault();
+
     handleRaycasterInteraction();
   },
   { passive: false }
@@ -1837,11 +2104,21 @@ window.addEventListener(
 window.addEventListener("click", handleRaycasterInteraction);
 
 // Other Event Listeners
-const themeToggleButton = document.querySelector(".theme-toggle-button");
-const muteToggleButton = document.querySelector(".mute-toggle-button");
+
+const themeToggleButton = document.querySelector(
+  ".theme-toggle-button"
+);
+
+const muteToggleButton = document.querySelector(
+  ".mute-toggle-button"
+);
+
 const sunSvg = document.querySelector(".sun-svg");
+
 const moonSvg = document.querySelector(".moon-svg");
+
 const soundOffSvg = document.querySelector(".sound-off-svg");
+
 const soundOnSvg = document.querySelector(".sound-on-svg");
 
 const updateMuteState = (muted) => {
@@ -1852,6 +2129,7 @@ const updateMuteState = (muted) => {
   }
 
   buttonSounds.click.mute(muted);
+
   Object.values(pianoSounds).forEach((sound) => {
     sound.mute(muted);
   });
@@ -1861,7 +2139,9 @@ const handleMuteToggle = (e) => {
   e.preventDefault();
 
   isMuted = !isMuted;
+
   updateMuteState(isMuted);
+
   buttonSounds.click.play();
 
   if (!backgroundMusic.playing()) {
@@ -1873,6 +2153,7 @@ const handleMuteToggle = (e) => {
     scale: 5,
     duration: 0.5,
     ease: "back.out(2)",
+
     onStart: () => {
       if (!isMuted) {
         soundOffSvg.style.display = "none";
@@ -1887,6 +2168,7 @@ const handleMuteToggle = (e) => {
         scale: 1,
         duration: 0.5,
         ease: "back.out(2)",
+
         onComplete: () => {
           gsap.set(muteToggleButton, {
             clearProps: "all",
@@ -1898,10 +2180,12 @@ const handleMuteToggle = (e) => {
 };
 
 let isMuted = false;
+
 muteToggleButton.addEventListener(
   "click",
   (e) => {
     if (touchHappened) return;
+
     handleMuteToggle(e);
   },
   { passive: false }
@@ -1911,28 +2195,418 @@ muteToggleButton.addEventListener(
   "touchend",
   (e) => {
     touchHappened = true;
+
     handleMuteToggle(e);
   },
   { passive: false }
 );
 
+const forgeModeButtons = document.querySelectorAll(
+  ".forge-mode-btn"
+);
+
+const forgeUploadCards = document.querySelectorAll(
+  ".forge-upload-card.optional"
+);
+
+const forgeInputFields = document.querySelectorAll(
+  ".forge-input"
+);
+
+const forgeViewer = document.getElementById("forge-viewer");
+
+const forgeExportBtn = document.querySelector(
+  ".forge-export-btn"
+);
+
+const forgeSubmitBtn = document.querySelector(
+  ".forge-submit-btn"
+);
+
+const forgeOutputStage = document.querySelector(
+  ".forge-output-stage"
+);
+
+const setForgeMode = (mode) => {
+  forgeModeButtons.forEach((button) => {
+    const isActive = button.dataset.mode === mode;
+
+    button.classList.toggle("is-active", isActive);
+
+    button.setAttribute(
+      "aria-pressed",
+      String(isActive)
+    );
+  });
+
+  const isSingleMode = mode === "single";
+
+  forgeUploadCards.forEach((card) => {
+    card.classList.toggle(
+      "is-disabled",
+      !isSingleMode
+    );
+  });
+};
+
+forgeModeButtons.forEach((button) => {
+  button.addEventListener("click", () =>
+    setForgeMode(button.dataset.mode)
+  );
+});
+
+forgeInputFields.forEach((input) => {
+  input.addEventListener("change", (event) => {
+    const file = event.target.files?.[0];
+
+    const card = event.target.closest(
+      ".forge-upload-card"
+    );
+
+    const preview = card?.querySelector(
+      ".forge-preview"
+    );
+
+    if (!file || !preview) return;
+
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      preview.src = reader.result;
+
+      card.classList.add("is-filled");
+    };
+
+    reader.readAsDataURL(file);
+  });
+});
+
+forgeSubmitBtn?.addEventListener("click", () => {
+  const requiredInput = document.querySelector(
+    '.forge-input[data-slot="source"]'
+  );
+
+  const requiredCard = requiredInput?.closest(
+    ".forge-upload-card"
+  );
+
+  const requiredPreview = requiredCard?.querySelector(
+    ".forge-preview"
+  );
+
+  if (!requiredPreview?.src) return;
+
+  forgeOutputStage?.classList.add("is-ready");
+
+  forgeOutputStage?.style.setProperty(
+    "--result-image",
+    `url(${requiredPreview.src})`
+  );
+
+  forgeOutputStage?.setAttribute(
+    "data-status",
+    "ready"
+  );
+});
+
+let viewerRotationX = 25;
+
+let viewerRotationY = -20;
+
+let viewerScale = 1.1;
+
+let isDraggingViewer = false;
+
+let lastPointerX = 0;
+
+let lastPointerY = 0;
+
+const updateForgeViewer = () => {
+  if (!forgeViewer) return;
+
+  const model = forgeViewer.querySelector(
+    ".forge-model"
+  );
+
+  if (!model) return;
+
+  model.style.transform = `rotateX(${viewerRotationX}deg) rotateY(${viewerRotationY}deg) scale(${viewerScale})`;
+};
+
+forgeViewer?.addEventListener("pointerdown", (event) => {
+  isDraggingViewer = true;
+
+  lastPointerX = event.clientX;
+  lastPointerY = event.clientY;
+
+  forgeViewer.setPointerCapture(event.pointerId);
+});
+
+forgeViewer?.addEventListener("pointermove", (event) => {
+  if (!isDraggingViewer) return;
+
+  const deltaX = event.clientX - lastPointerX;
+
+  const deltaY = event.clientY - lastPointerY;
+
+  viewerRotationY += deltaX * 0.35;
+
+  viewerRotationX -= deltaY * 0.35;
+
+  viewerRotationX = Math.min(
+    80,
+    Math.max(-80, viewerRotationX)
+  );
+
+  lastPointerX = event.clientX;
+
+  lastPointerY = event.clientY;
+
+  updateForgeViewer();
+});
+
+forgeViewer?.addEventListener("pointerup", () => {
+  isDraggingViewer = false;
+});
+
+forgeViewer?.addEventListener("pointerleave", () => {
+  isDraggingViewer = false;
+});
+
+forgeViewer?.addEventListener(
+  "wheel",
+  (event) => {
+    event.preventDefault();
+
+    viewerScale += event.deltaY * -0.0008;
+
+    viewerScale = Math.min(
+      1.8,
+      Math.max(0.8, viewerScale)
+    );
+
+    updateForgeViewer();
+  },
+  { passive: false }
+);
+
+forgeExportBtn?.addEventListener("click", () => {
+  const canvas = document.createElement("canvas");
+
+  canvas.width = 1200;
+  canvas.height = 800;
+
+  const ctx = canvas.getContext("2d");
+
+  ctx.fillStyle = "#f3edf4";
+
+  ctx.fillRect(
+    0,
+    0,
+    canvas.width,
+    canvas.height
+  );
+
+  ctx.fillStyle = "#eee0f4";
+
+  ctx.strokeStyle = "#6e5e9c";
+
+  ctx.lineWidth = 6;
+
+  const panelX = 260;
+  const panelY = 110;
+  const panelW = 680;
+  const panelH = 520;
+
+  roundedRect(
+    ctx,
+    panelX,
+    panelY,
+    panelW,
+    panelH,
+    28
+  );
+
+  ctx.fill();
+
+  ctx.stroke();
+
+  ctx.save();
+
+  ctx.translate(
+    canvas.width / 2,
+    canvas.height / 2
+  );
+
+  ctx.rotate(-18 * (Math.PI / 180));
+
+  ctx.fillStyle = "#d4c0e5";
+
+  ctx.strokeStyle = "#6e5e9c";
+
+  ctx.lineWidth = 6;
+
+  ctx.beginPath();
+
+  ctx.moveTo(-130, 40);
+
+  ctx.lineTo(-10, -120);
+
+  ctx.lineTo(140, -30);
+
+  ctx.lineTo(25, 120);
+
+  ctx.closePath();
+
+  ctx.fill();
+
+  ctx.stroke();
+
+  ctx.fillStyle = "#f5f2f6";
+
+  ctx.fillRect(
+    -92,
+    -62,
+    175,
+    140
+  );
+
+  ctx.strokeRect(
+    -92,
+    -62,
+    175,
+    140
+  );
+
+  ctx.restore();
+
+  ctx.fillStyle = "#6c3f7c";
+
+  ctx.font =
+    '700 70px "Trebuchet MS", sans-serif';
+
+  ctx.textAlign = "center";
+
+  ctx.fillText(
+    "3D",
+    canvas.width / 2,
+    canvas.height / 2 + 20
+  );
+
+  ctx.fillStyle = "#6c3f7c";
+
+  ctx.font =
+    '500 36px "Trebuchet MS", sans-serif';
+
+  ctx.fillText(
+    "Mô hình 3D sẽ hiển thị ở đây",
+    canvas.width / 2,
+    canvas.height / 2 + 110
+  );
+
+  const link = document.createElement("a");
+
+  link.href = canvas.toDataURL("image/png");
+
+  link.download = "3d-forge-export.png";
+
+  link.click();
+});
+
+function roundedRect(
+  context,
+  x,
+  y,
+  width,
+  height,
+  radius
+) {
+  context.beginPath();
+
+  context.moveTo(
+    x + radius,
+    y
+  );
+
+  context.lineTo(
+    x + width - radius,
+    y
+  );
+
+  context.quadraticCurveTo(
+    x + width,
+    y,
+    x + width,
+    y + radius
+  );
+
+  context.lineTo(
+    x + width,
+    y + height - radius
+  );
+
+  context.quadraticCurveTo(
+    x + width,
+    y + height,
+    x + width - radius,
+    y + height
+  );
+
+  context.lineTo(
+    x + radius,
+    y + height
+  );
+
+  context.quadraticCurveTo(
+    x,
+    y + height,
+    x,
+    y + height - radius
+  );
+
+  context.lineTo(
+    x,
+    y + radius
+  );
+
+  context.quadraticCurveTo(
+    x,
+    y,
+    x + radius,
+    y
+  );
+
+  context.closePath();
+}
+
+setForgeMode("single");
+
+updateForgeViewer();
+
 // Themeing stuff
+
 const toggleFavicons = () => {
-  const isDark = document.body.classList.contains("dark-theme");
+  const isDark =
+    document.body.classList.contains("dark-theme");
+
   const theme = isDark ? "light" : "dark";
 
   document.querySelector(
     'link[sizes="96x96"]'
   ).href = `media/${theme}-favicon/favicon-96x96.png`;
+
   document.querySelector(
     'link[type="image/svg+xml"]'
   ).href = `/media/${theme}-favicon/favicon.svg`;
+
   document.querySelector(
     'link[rel="shortcut icon"]'
   ).href = `media/${theme}-favicon/favicon.ico`;
+
   document.querySelector(
     'link[rel="apple-touch-icon"]'
   ).href = `media/${theme}-favicon/apple-touch-icon.png`;
+
   document.querySelector(
     'link[rel="manifest"]'
   ).href = `media/${theme}-favicon/site.webmanifest`;
@@ -1942,13 +2616,22 @@ let isNightMode = false;
 
 const handleThemeToggle = (e) => {
   e.preventDefault();
+
   toggleFavicons();
 
-  const isDark = document.body.classList.contains("dark-theme");
-  document.body.classList.remove(isDark ? "dark-theme" : "light-theme");
-  document.body.classList.add(isDark ? "light-theme" : "dark-theme");
+  const isDark =
+    document.body.classList.contains("dark-theme");
+
+  document.body.classList.remove(
+    isDark ? "dark-theme" : "light-theme"
+  );
+
+  document.body.classList.add(
+    isDark ? "light-theme" : "dark-theme"
+  );
 
   isNightMode = !isNightMode;
+
   buttonSounds.click.play();
 
   gsap.to(themeToggleButton, {
@@ -1956,6 +2639,7 @@ const handleThemeToggle = (e) => {
     scale: 5,
     duration: 0.5,
     ease: "back.out(2)",
+
     onStart: () => {
       if (isNightMode) {
         sunSvg.style.display = "none";
@@ -1970,6 +2654,7 @@ const handleThemeToggle = (e) => {
         scale: 1,
         duration: 0.5,
         ease: "back.out(2)",
+
         onComplete: () => {
           gsap.set(themeToggleButton, {
             clearProps: "all",
@@ -1979,20 +2664,27 @@ const handleThemeToggle = (e) => {
     },
   });
 
-  Object.values(roomMaterials).forEach((material) => {
-    gsap.to(material.uniforms.uMixRatio, {
-      value: isNightMode ? 1 : 0,
-      duration: 1.5,
-      ease: "power2.inOut",
-    });
-  });
+  Object.values(roomMaterials).forEach(
+    (material) => {
+      gsap.to(
+        material.uniforms.uMixRatio,
+        {
+          value: isNightMode ? 1 : 0,
+          duration: 1.5,
+          ease: "power2.inOut",
+        }
+      );
+    }
+  );
 };
 
 // Click event listener
+
 themeToggleButton.addEventListener(
   "click",
   (e) => {
     if (touchHappened) return;
+
     handleThemeToggle(e);
   },
   { passive: false }
@@ -2002,12 +2694,14 @@ themeToggleButton.addEventListener(
   "touchend",
   (e) => {
     touchHappened = true;
+
     handleThemeToggle(e);
   },
   { passive: false }
 );
 
-/**  -------------------------- Render and Animations Stuff -------------------------- */
+/** -------------------------- Render and Animations Stuff -------------------------- */
+
 const clock = new THREE.Clock();
 
 const updateClockHands = () => {
@@ -2018,9 +2712,11 @@ const updateClockHands = () => {
   const minutes = now.getMinutes();
   const seconds = now.getSeconds();
 
-  const minuteAngle = (minutes + seconds / 60) * ((Math.PI * 2) / 60);
+  const minuteAngle =
+    (minutes + seconds / 60) * ((Math.PI * 2) / 60);
 
-  const hourAngle = (hours + minutes / 60) * ((Math.PI * 2) / 12);
+  const hourAngle =
+    (hours + minutes / 60) * ((Math.PI * 2) / 12);
 
   minuteHand.rotation.x = -minuteAngle;
   hourHand.rotation.x = -hourAngle;
@@ -2029,10 +2725,10 @@ const updateClockHands = () => {
 const render = (timestamp) => {
   const elapsedTime = clock.getElapsedTime();
 
-  // Update Shader Univform
+  // Update Shader Uniform
   smokeMaterial.uniforms.uTime.value = elapsedTime;
 
-  //Update Orbit Controls
+  // Update Orbit Controls
   controls.update();
 
   // Update Clock hand rotation
@@ -2057,16 +2753,22 @@ const render = (timestamp) => {
       Math.sin(time * 0.5) *
       (1 - Math.abs(Math.sin(time * 0.5)) * 0.3);
 
-    chairTop.rotation.y = chairTop.userData.initialRotation.y + rotationOffset;
+    chairTop.rotation.y =
+      chairTop.userData.initialRotation.y + rotationOffset;
   }
 
   // Fish up and down animation
   if (fish) {
     const time = timestamp * 0.0015;
     const amplitude = 0.12;
+
     const position =
-      amplitude * Math.sin(time) * (1 - Math.abs(Math.sin(time)) * 0.1);
-    fish.position.y = fish.userData.initialPosition.y + position;
+      amplitude *
+      Math.sin(time) *
+      (1 - Math.abs(Math.sin(time)) * 0.1);
+
+    fish.position.y =
+      fish.userData.initialPosition.y + position;
   }
 
   // Raycaster
@@ -2102,12 +2804,12 @@ const render = (timestamp) => {
         playHoverAnimation(currentHoveredObject, false);
         currentHoveredObject = null;
       }
+
       document.body.style.cursor = "default";
     }
   }
 
   renderer.render(scene, camera);
-
   window.requestAnimationFrame(render);
 };
 
