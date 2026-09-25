@@ -27,12 +27,12 @@ import {
 
 const DEFAULT_URL = 'https://example.com';
 const MEME_KEYWORDS = [
-  'meme 2026',
-  'funny meme 2026',
-  'cat meme 2026',
-  'dog meme 2026',
-  'office meme 2026',
-  'programmer meme 2026',
+  'trứng bắc thảo xanh meme',
+  've tró',
+  'trứng bắc thảo xanh lá',
+  'trứng bắc thảo giận',
+  'trứng bắc thảo vui',
+  'trứng bắc thảo slay',
 ];
 const MEME_DIRECT_IMAGES = [
   'https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=1200&q=80',
@@ -152,7 +152,7 @@ export default function App() {
   }, []);
 
   const randomMemeUrl = useCallback(() => {
-    const keyword = MEME_KEYWORDS[Math.floor(Math.random() * MEME_KEYWORDS.length)] ?? 'meme 2026';
+    const keyword = MEME_KEYWORDS[Math.floor(Math.random() * MEME_KEYWORDS.length)] ?? 'trứng bắc thảo xanh meme';
     return pickMemeImage(keyword);
   }, []);
 
@@ -236,7 +236,7 @@ export default function App() {
   const handleMemeModeToggle = () => {
     if (!canUseMemeMode) return;
 
-    const keyword = MEME_KEYWORDS[Math.floor(Math.random() * MEME_KEYWORDS.length)] ?? 'meme 2026';
+    const keyword = MEME_KEYWORDS[Math.floor(Math.random() * MEME_KEYWORDS.length)] ?? 'trứng bắc thảo xanh meme';
     const imageUrl = pickMemeImage(keyword);
     const searchUrl = buildMemeSearchUrl(keyword);
 

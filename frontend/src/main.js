@@ -386,7 +386,7 @@ manager.onLoad = function () {
 
   let isDisabled = false;
 
-  noSoundButton.textContent = "Enter without Sound :(";
+  noSoundButton.textContent = "🎧 Sound on, bestie. You’re gonna want this.";
 
   function handleEnter(withSound = true) {
     if (isDisabled) return;
@@ -445,9 +445,16 @@ manager.onLoad = function () {
       // 2. VIDEO XONG MỚI HIỆN CHỮ "hé lô nhen"
 
       loadingScreenButton.textContent = "hé lô nhen";
-
       loadingScreenButton.style.opacity = "1";
 
+      const desktopInstructions = document.querySelector(".desktop-instructions");
+      const mobileInstructions = document.querySelector(".mobile-instructions");
+      const noSoundButton = document.querySelector(".no-sound-button");
+
+      if (desktopInstructions) desktopInstructions.style.display = "none";
+      if (mobileInstructions) mobileInstructions.style.display = "none";
+      if (noSoundButton) noSoundButton.style.display = "none";
+    
       // 3. Dùng GSAP làm mờ video đi, lúc này màn hình loading
       // (có chữ hé lô nhen) sẽ lộ ra
 
