@@ -2,11 +2,10 @@
 @use "./styles/reset.scss";
 @use "./styles/variables.scss" as vars;
 @use "./styles/defaults.scss" as media;
-
-// Gắn các file partials bạn vừa tạo
 @use "./styles/loading.scss";
 @use "./styles/modals.scss";
 @use "./styles/forge.scss";
+@use "./styles/chatbot.scss";
 
 $themes: (
   light: (

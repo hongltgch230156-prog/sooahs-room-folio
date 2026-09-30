@@ -9,6 +9,8 @@ import smokeFragmentShader from "./shaders/smoke/fragment.glsl";
 import themeVertexShader from "./shaders/theme/vertex.glsl";
 import themeFragmentShader from "./shaders/theme/fragment.glsl";
 import { initForge } from "./components/forge.js";
+import { MascotController } from "./components/MascotController.js";
+import { ChatbotUI } from "./components/ChatbotUI.js";
 
 /** -------------------------- Audio setup -------------------------- */
 
@@ -105,6 +107,21 @@ const buttonSounds = {
   }),
 };
 
+// Char
+const characters = [
+  { id: 1, name: "Nina", mood: "Dreamy 🌙", avatar: "/images/char1.png" },
+  { id: 2, name: "Milo", mood: "Groovy 🎵", avatar: "/images/char2.png" },
+  { id: 3, name: "Juno", mood: "Fierce 🖤", avatar: "/images/char3.png" },
+  { id: 4, name: "Mochi", mood: "Sleepy 😴", avatar: "/images/char4.png" },
+  { id: 5, name: "Roxy", mood: "Mischievous 🦊", avatar: "/images/char5.png" },
+];
+
+const savedCharacterId = Number(localStorage.getItem("selectedCharacterId"));
+const initialCharacter =
+  characters.find((character) => character.id === savedCharacterId) ??
+  characters.find((character) => character.id === 1) ??
+  characters[0];
+
 /** -------------------------- Scene setup -------------------------- */
 
 const canvas = document.querySelector("#experience-canvas");
@@ -117,6 +134,16 @@ const sizes = {
 const scene = new THREE.Scene();
 
 scene.background = new THREE.Color("#D9CAD1");
+
+// THÊM ÁNH SÁNG CHO MASCOT TẠI ĐÂY:
+// 1. Đèn môi trường (chiếu sáng đều mọi góc khuất, cường độ 2.0)
+const ambientLight = new THREE.AmbientLight(0xffffff, 2.0);
+scene.add(ambientLight);
+
+// 2. Đèn định hướng (tạo độ khối và bóng râm, chiếu từ trên góc phải xuống)
+const directionalLight = new THREE.DirectionalLight(0xffffff, 2.0);
+directionalLight.position.set(5, 10, 5);
+scene.add(directionalLight);
 
 const camera = new THREE.PerspectiveCamera(
   35,
@@ -526,6 +553,11 @@ function playReveal() {
         isModalOpen = false;
 
         playIntroAnimation();
+
+        // CHO MASCOT XUẤT HIỆN SAU KHI PHÒNG MỞ RA:
+        setTimeout(() => {
+            if(chatbotMascot) chatbotMascot.playIntroSequence();
+        }, 1000); // Đợi phòng nở ra 1s rồi mới cho Mascot ngó đầu ra
 
         loadingScreen.remove();
       },
@@ -1206,6 +1238,13 @@ const loadedTextures = {
   night: {},
 };
 
+
+// Khởi tạo Mascot
+const chatbotMascot = new MascotController(scene, loader, initialCharacter.id, camera);
+chatbotMascot.init().then(() => {
+  // Khi user bấm "Enter!" và kết thúc Loading Screen thì mới gọi hàm Intro
+});
+
 Object.entries(textureMap).forEach(([key, paths]) => {
   // Load and configure day texture
 
@@ -1344,6 +1383,8 @@ videoTexture.flipY = false;
 // LOL DO NOT DO THIS USE A FUNCTION TO AUTOMATE THIS PROCESS HAHAHAAHAHAHAHAHAHA
 
 let fish;
+let mascotMixer;
+let previousTime = 0;
 let coffeePosition;
 let hourHand;
 let minuteHand;
@@ -1493,6 +1534,7 @@ function hasIntroAnimation(objectName) {
 }
 
 loader.load("/models/Room_Portfolio.glb", (glb) => {
+  glb.scene.position.x -= 3;
   glb.scene.traverse((child) => {
     if (child.isMesh) {
       if (child.name.includes("Fish_Fourth")) {
@@ -1743,6 +1785,13 @@ loader.load("/models/Room_Portfolio.glb", (glb) => {
     );
   }
 
+  if (coffeePosition) {
+    smoke.position.set(
+      coffeePosition.x,
+      coffeePosition.y + 0.2,
+      coffeePosition.z
+    );
+  }
   scene.add(glb.scene);
 });
 
@@ -1775,6 +1824,10 @@ function shouldUseOriginalMesh(objectName) {
   return useOriginalMeshObjects.some((meshName) =>
     objectName.includes(meshName)
   );
+}
+
+async function sendChatMessage(text) {
+  return `You said: ${text}`;
 }
 
 function createStaticHitbox(originalObject) {
@@ -1900,6 +1953,8 @@ function createDelayedHitboxes() {
 }
 
 function handleRaycasterInteraction() {
+  if (chatbotUI?.isOpen) return;
+
   if (currentIntersects.length > 0) {
     const hitbox = currentIntersects[0].object;
 
@@ -2104,12 +2159,51 @@ window.addEventListener(
 
     e.preventDefault();
 
+    if (openChatIfMascotHit(e.changedTouches[0])) return;
+
     handleRaycasterInteraction();
   },
   { passive: false }
 );
 
 window.addEventListener("click", handleRaycasterInteraction);
+
+const chatbotUI = new ChatbotUI({
+  characters,
+  initialCharacterId: initialCharacter.id,
+  onClose: () => {
+    chatbotMascot.closeChat();
+    controls.enabled = !isModalOpen;
+  },
+  onSend: sendChatMessage,
+  onSelectCharacter: async (id) => {
+  await chatbotMascot.changeCharacter(id);
+  localStorage.setItem("selectedCharacterId", String(id));
+},
+});
+
+controls.enabled = !isModalOpen;
+
+function openChatIfMascotHit(event) {
+  if (!chatbotMascot.mascot || chatbotUI.isOpen) return false;
+
+  const rect = canvas.getBoundingClientRect();
+  pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+  pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+  raycaster.setFromCamera(pointer, camera);
+  const hits = raycaster.intersectObject(chatbotMascot.mascot, true);
+  if (!hits.length) return false;
+
+  chatbotUI.open();
+  chatbotMascot.openChat();
+  controls.enabled = false;
+  return true;
+}
+
+canvas.addEventListener("click", (event) => {
+  if (openChatIfMascotHit(event)) event.stopPropagation();
+});
 
 // Other Event Listeners
 
@@ -2351,7 +2445,15 @@ const updateClockHands = () => {
 };
 
 const render = (timestamp) => {
+
   const elapsedTime = clock.getElapsedTime();
+
+  const deltaTime = elapsedTime - previousTime;
+  previousTime = elapsedTime;
+  // Cập nhật animation của Mascot
+  if (chatbotMascot) {
+    chatbotMascot.update(deltaTime);
+  }
 
   // Update Shader Uniform
   smokeMaterial.uniforms.uTime.value = elapsedTime;
@@ -2400,7 +2502,7 @@ const render = (timestamp) => {
   }
 
   // Raycaster
-  if (!isModalOpen) {
+  if (!isModalOpen && !chatbotUI?.isOpen) {
     raycaster.setFromCamera(pointer, camera);
 
     // Get all the objects the raycaster is currently shooting through / intersecting with
