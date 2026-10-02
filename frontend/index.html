@@ -280,8 +280,11 @@
               type="button"
               class="forge-submit-btn"
             >
-              <span class="forge-submit-icon" aria-hidden="true">✦</span>
-              GENERATE 3D
+              <svg class="forge-action-icon forge-sparkles-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="m12 3 1.9 5.8L20 11l-6.1 2.2L12 19l-1.9-5.8L4 11l6.1-2.2L12 3Z" />
+                <path d="m19 14 .9 2.2L22 17l-2.1.8L19 20l-.9-2.2L16 17l2.1-.8L19 14Z" />
+              </svg>
+              <span>Generate 3D</span>
             </button>
 
             <p class="forge-helper-text">
@@ -317,13 +320,106 @@
               </p>
             </div>
 
-            <button
-              type="button"
-              class="forge-export-btn"
-            >
-              <span class="forge-export-icon" aria-hidden="true">⇩</span>
-              Export to 2D
-            </button>
+            <div class="forge-auto-rotate-control" aria-label="Model auto-rotate settings">
+              <svg class="forge-auto-rotate-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M20 7v5h-5M4 17v-5h5" />
+                <path d="M5.6 9A7 7 0 0 1 18 6.5L20 12M4 12l2 5.5A7 7 0 0 0 18.4 15" />
+              </svg>
+              <div class="forge-auto-rotate-copy">
+                <strong>Auto-rotate</strong>
+                <small>Pause the spin. Find your good side 😎</small>
+              </div>
+              <span class="forge-auto-rotate-state">ON</span>
+              <button
+                type="button"
+                class="forge-auto-rotate-toggle is-on"
+                role="switch"
+                aria-label="Auto-rotate model"
+                aria-checked="true"
+              ></button>
+            </div>
+
+            <div class="forge-export-actions">
+              <div class="forge-export-menu-wrap">
+                <button
+                  type="button"
+                  class="forge-export-model-btn"
+                  aria-expanded="false"
+                  aria-controls="forge-export-menu"
+                >
+                  <svg class="forge-export-cube-icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="m12 3 8 4.5v9L12 21l-8-4.5v-9L12 3Z M12 12l8-4.5M12 12v9m0-9L4 7.5" />
+                  </svg>
+                  <span>Export 3D Model</span>
+                  <svg class="forge-export-chevron" viewBox="0 0 16 16" aria-hidden="true">
+                    <path d="m4 6 4 4 4-4" />
+                  </svg>
+                </button>
+
+                <div class="forge-export-menu" id="forge-export-menu" role="group" aria-label="Choose a 3D format" hidden>
+                  <p class="forge-export-menu-title">Choose a 3D format</p>
+                  <button type="button" class="forge-export-option" data-format="glb" aria-pressed="false">
+                    <span class="forge-export-format-tag">GLB</span>
+                    <span class="forge-export-option-copy"><strong>.glb</strong><small>Textured - best all-round</small></span>
+                  </button>
+                  <button type="button" class="forge-export-option" data-format="fbx" aria-pressed="false">
+                    <span class="forge-export-format-tag">FBX</span>
+                    <span class="forge-export-option-copy"><strong>.fbx</strong><small>Game engines and 3D software</small></span>
+                  </button>
+                  <button type="button" class="forge-export-option" data-format="obj" aria-pressed="false">
+                    <span class="forge-export-format-tag">OBJ</span>
+                    <span class="forge-export-option-copy"><strong>.obj</strong><small>Widely supported mesh</small></span>
+                  </button>
+                  <button type="button" class="forge-export-option" data-format="stl" aria-pressed="false">
+                    <span class="forge-export-format-tag">STL</span>
+                    <span class="forge-export-option-copy"><strong>.stl</strong><small>Ready for 3D printing</small></span>
+                  </button>
+                  <p class="forge-export-status" role="status" aria-live="polite" hidden></p>
+                </div>
+              </div>
+
+              <div class="forge-export-menu-wrap forge-export-2d-menu-wrap">
+                <button
+                  type="button"
+                  class="forge-export-btn forge-export-2d-btn"
+                  aria-expanded="false"
+                  aria-controls="forge-export-2d-menu"
+                >
+                  <svg class="forge-action-icon forge-download-icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <path d="m7 10 5 5 5-5M12 15V3" />
+                  </svg>
+                  <span>Export to 2D</span>
+                  <svg class="forge-export-chevron" viewBox="0 0 16 16" aria-hidden="true">
+                    <path d="m4 6 4 4 4-4" />
+                  </svg>
+                </button>
+
+                <div class="forge-export-menu forge-export-2d-menu" id="forge-export-2d-menu" role="group" aria-label="Choose a 2D export method" hidden>
+                  <p class="forge-export-menu-title">Export to 2D</p>
+                  <p class="forge-export-menu-subtitle">Choose how you'd like to export your current view.</p>
+                  <button type="button" class="forge-export-option forge-export-image-option" data-export-mode="ai" aria-pressed="false">
+                    <span class="forge-export-format-tag" aria-hidden="true">
+                      <svg class="forge-export-image-icon" viewBox="0 0 24 24">
+                        <path d="m12 3 1.6 5.4L19 10l-5.4 1.6L12 17l-1.6-5.4L5 10l5.4-1.6L12 3Z" />
+                        <path d="m19 15 .8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8L19 15Z" />
+                      </svg>
+                    </span>
+                    <span class="forge-export-option-copy"><strong>AI Style Reconstruction</strong><small>Keep the original image's style</small></span>
+                  </button>
+                  <button type="button" class="forge-export-option forge-export-image-option" data-export-mode="direct" aria-pressed="false">
+                    <span class="forge-export-format-tag" aria-hidden="true">
+                      <svg class="forge-export-image-icon" viewBox="0 0 24 24">
+                        <path d="M5 7h3l1.5-2h5L16 7h3a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2Z" />
+                        <circle cx="12" cy="13" r="3.5" />
+                      </svg>
+                    </span>
+                    <span class="forge-export-option-copy"><strong>Direct 3D Render</strong><small>Export exactly what you see</small></span>
+                  </button>
+                  <p class="forge-export-status forge-export-2d-status" role="status" aria-live="polite" hidden></p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

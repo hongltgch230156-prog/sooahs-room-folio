@@ -18,11 +18,19 @@ export class MascotController {
     this.mascotWorldPosition = new THREE.Vector3();
     this.homePosition = null;
     this.chatPosition = null;
+    this.actionTimer = null;
     
     // Tọa độ ngắm chừng
     this.startPos = { x: 10, y: 0, z: 0 }; // Nấp sau tường (bên phải)
     this.peekPos  = { x: 10, y: 0, z: 0 }; // Ngó đầu ra khỏi tường
     this.finalPos = { x: 10, y: 0, z: 0}; // Vị trí chốt ở góc dưới bên phải
+  }
+
+  clearTimers() {
+    if (this.actionTimer) {
+      clearTimeout(this.actionTimer);
+      this.actionTimer = null;
+    }
   }
 
 async init() {
@@ -201,6 +209,7 @@ async init() {
   // 2. TRẠNG THÁI CHỜ (IDLE)
   // =======================================================
   setIdle() {
+    this.clearTimers();
     switch(this.charId) {
       case 1: this.fadeToAction("listening_to_music", 0.5); break;
       case 2: this.fadeToAction("slide_hip_hop_dance", 0.5); break;
@@ -215,6 +224,7 @@ async init() {
   // 3. TRẠNG THÁI SUY NGHĨ (THINKING)
   // =======================================================
   setThinking() {
+    this.clearTimers();
     switch(this.charId) {
       case 1: 
         this.fadeToAction("thinking", 0.5); 
@@ -232,7 +242,7 @@ async init() {
         // Char 5 có 2 bước: lắc đầu rồi mới focus
         this.fadeToAction("thoughtful_head_shake", 0.5);
         // Sau 1.5s chuyển sang focus
-        setTimeout(() => { 
+        this.actionTimer = setTimeout(() => { 
           if(this.currentAction === this.actions["thoughtful_head_shake"]) {
             this.fadeToAction("focus", 0.5); 
           }
@@ -246,6 +256,7 @@ async init() {
   // =======================================================
   setTalking() {
     // Tất cả các char đều dùng hoạt ảnh talking giống nhau
+    this.clearTimers();
     this.fadeToAction("talking", 0.5);
   }
 
@@ -253,6 +264,7 @@ async init() {
   // 5. TRẠNG THÁI CHỐT CÂU TRẢ LỜI (Đổi tên từ setClapping cho tổng quát)
   // =======================================================
   setFinishTalking() {
+    this.clearTimers();
     switch(this.charId) {
       case 1: this.fadeToAction("clapping", 0.3); break;
       case 2: this.fadeToAction("clapping", 0.3); break;
@@ -262,7 +274,7 @@ async init() {
     }
     
     // Tạo dáng chốt tầm 2.5 giây rồi tự động quay về trạng thái chờ
-    setTimeout(() => {
+    this.actionTimer = setTimeout(() => {
       this.setIdle();
     }, 2500);
   }
@@ -320,7 +332,7 @@ async init() {
     cameraRight.y = 0;
     cameraRight.normalize();
     this.chatPosition = this.homePosition.clone()
-      .addScaledVector(cameraRight, -2.8);
+      .addScaledVector(cameraRight, -3);
       
     gsap.to(this.mascot.position, {
       x: this.chatPosition.x,

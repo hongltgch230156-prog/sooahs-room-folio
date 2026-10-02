@@ -551,6 +551,7 @@ function playReveal() {
 
       onComplete: () => {
         isModalOpen = false;
+        controls.enabled = true;
 
         playIntroAnimation();
 
@@ -577,15 +578,15 @@ function playIntroAnimation() {
   t1.timeScale(0.8);
 
   t1.to(plank1.scale, {
-    x: 1,
-    y: 1,
+    x: plank1.userData.initialScale.x,
+    y: plank1.userData.initialScale.y,
   })
     .to(
       plank2.scale,
       {
-        x: 1,
-        y: 1,
-        z: 1,
+        x: plank2.userData.initialScale.x,
+        y: plank2.userData.initialScale.y,
+        z: plank2.userData.initialScale.z,
       },
       "-=0.5"
     )
@@ -666,33 +667,6 @@ function playIntroAnimation() {
     x: 1,
     delay: 0.4,
   })
-    .to(
-      github.scale,
-      {
-        x: 1,
-        y: 1,
-        z: 1,
-      },
-      "-=0.5"
-    )
-    .to(
-      youtube.scale,
-      {
-        x: 1,
-        y: 1,
-        z: 1,
-      },
-      "-=0.6"
-    )
-    .to(
-      twitter.scale,
-      {
-        x: 1,
-        y: 1,
-        z: 1,
-      },
-      "-=0.6"
-    );
 
   const tFlowers = gsap.timeline({
     defaults: {
@@ -1190,7 +1164,7 @@ function playIntroAnimation() {
 
 /** -------------------------- Loaders & Texture Preparations -------------------------- */
 
-const textureLoader = new THREE.TextureLoader();
+const textureLoader = new THREE.TextureLoader(manager);
 
 const dracoLoader = new DRACOLoader();
 
@@ -1398,10 +1372,7 @@ let plank1,
   workBtn,
   aboutBtn,
   contactBtn,
-  boba,
-  github,
-  youtube,
-  twitter;
+  boba;
 
 let letter1,
   letter2,
@@ -1472,9 +1443,6 @@ const objectsWithIntroAnimations = [
   "About_Button",
   "Contact_Button",
   "Boba",
-  "GitHub",
-  "YouTube",
-  "Twitter",
   "Name_Letter_1",
   "Name_Letter_2",
   "Name_Letter_3",
@@ -1533,7 +1501,7 @@ function hasIntroAnimation(objectName) {
   );
 }
 
-loader.load("/models/Room_Portfolio.glb", (glb) => {
+loader.load("/models/Room.glb", (glb) => {
   glb.scene.position.x -= 3;
   glb.scene.traverse((child) => {
     if (child.isMesh) {
@@ -1597,9 +1565,11 @@ loader.load("/models/Room_Portfolio.glb", (glb) => {
 
       if (child.name.includes("Hanging_Plank_1")) {
         plank1 = child;
-        child.scale.set(0, 0, 1);
+        child.userData.initialScale = child.scale.clone();
+        child.scale.set(0, 0, child.userData.initialScale.z);
       } else if (child.name.includes("Hanging_Plank_2")) {
         plank2 = child;
+        child.userData.initialScale = child.scale.clone();
         child.scale.set(0, 0, 0);
       } else if (child.name.includes("My_Work_Button")) {
         workBtn = child;
@@ -1612,15 +1582,6 @@ loader.load("/models/Room_Portfolio.glb", (glb) => {
         child.scale.set(0, 0, 0);
       } else if (child.name.includes("Boba")) {
         boba = child;
-        child.scale.set(0, 0, 0);
-      } else if (child.name.includes("GitHub")) {
-        github = child;
-        child.scale.set(0, 0, 0);
-      } else if (child.name.includes("YouTube")) {
-        youtube = child;
-        child.scale.set(0, 0, 0);
-      } else if (child.name.includes("Twitter")) {
-        twitter = child;
         child.scale.set(0, 0, 0);
       } else if (child.name.includes("Name_Letter_1")) {
         letter1 = child;
@@ -1733,6 +1694,21 @@ loader.load("/models/Room_Portfolio.glb", (glb) => {
           transparent: true,
           opacity: 0.9,
         });
+
+      } else if (child.name.includes("SignText")) {
+        child.material = new THREE.MeshStandardMaterial({
+          color: 0xB86F52,
+          roughness: 0.65, 
+          metalness: 0.0, 
+        });
+
+      } else if (child.name.includes("Name_Letter")) {
+        child.material = new THREE.MeshStandardMaterial({
+          color: 0xFFEEDD,
+          roughness: 0.7,
+          metalness: 0
+        });
+
       } else {
         Object.keys(textureMap).forEach((key) => {
           if (child.name.includes(key)) {
@@ -1763,7 +1739,9 @@ loader.load("/models/Room_Portfolio.glb", (glb) => {
         } else {
           // Create immediate hitboxes/meshes for objects that DON'T have an intro animation
 
-          const raycastObject = createStaticHitbox(child);
+          const raycastObject = /^(Rock_|Seaweed_)/.test(child.name)
+            ? child
+            : createStaticHitbox(child);
 
           if (raycastObject !== child) {
             scene.add(raycastObject);
@@ -1779,17 +1757,9 @@ loader.load("/models/Room_Portfolio.glb", (glb) => {
 
   if (coffeePosition) {
     smoke.position.set(
-      coffeePosition.x,
-      coffeePosition.y + 0.2,
-      coffeePosition.z
-    );
-  }
-
-  if (coffeePosition) {
-    smoke.position.set(
-      coffeePosition.x,
-      coffeePosition.y + 0.2,
-      coffeePosition.z
+      coffeePosition.x -2.9,
+      coffeePosition.y ,
+      coffeePosition.z + 0.05
     );
   }
   scene.add(glb.scene);
@@ -1803,17 +1773,6 @@ let currentIntersects = [];
 
 let currentHoveredObject = null;
 
-const socialLinks = {
-  GitHub:
-    "https://youtu.be/pzL_FW80zoY?si=UEiI9wlhhkY5pMi8",
-
-  YouTube:
-    "https://youtu.be/pzL_FW80zoY?si=UEiI9wlhhkY5pMi8",
-
-  Twitter:
-    "https://youtu.be/pzL_FW80zoY?si=UEiI9wlhhkY5pMi8",
-};
-
 const raycaster = new THREE.Raycaster();
 
 const pointer = new THREE.Vector2();
@@ -1826,8 +1785,49 @@ function shouldUseOriginalMesh(objectName) {
   );
 }
 
+let talkingTimeout = null;
+
 async function sendChatMessage(text) {
-  return `You said: ${text}`;
+  try {
+    if (talkingTimeout) clearTimeout(talkingTimeout);
+    // 1. NGƯỜI DÙNG VỪA GỬI -> ÉP MASCOT CHUYỂN SANG TRẠNG THÁI "SUY NGHĨ"
+    if (chatbotMascot) chatbotMascot.setThinking();
+
+    // 2. GỬI YÊU CẦU XUỐNG BACKEND CỦA BẠN (Cổng 3000 đang chạy server.js)
+    const response = await fetch("http://localhost:3000/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        message: text,
+        characterId: chatbotMascot.charId // Gửi kèm ID để Backend nạp đúng tính cách
+      })
+    });
+
+    if (!response.ok) throw new Error("Backend API Error");
+    
+    const data = await response.json();
+
+    // 3. AI ĐÃ TRẢ LỜI -> ÉP MASCOT CHUYỂN SANG TRẠNG THÁI "ĐANG NÓI CHUYỆN"
+    if (chatbotMascot) chatbotMascot.setTalking();
+
+    // 4. ĐỒNG BỘ THỜI GIAN MÚA TAY VỚI ĐỘ DÀI CÂU TRẢ LỜI
+    // Tốc độ đọc trung bình là 250ms/từ. Múa tối thiểu 2.5 giây.
+    const wordCount = data.reply.split(" ").length;
+    const talkingTime = Math.max(2500, wordCount * 250); 
+
+    // Kích hoạt hành động chốt (vỗ tay, chỉ tay...) sau khi đã "nói xong"
+    talkingTimeout = setTimeout(() => {
+      if (chatbotMascot) chatbotMascot.setFinishTalking();
+    }, talkingTime);
+
+    // Trả đoạn text về cho giao diện ChatbotUI hiển thị lên khung chat
+    return data.reply;
+
+  } catch (error) {
+    console.error("Frontend Chat Error:", error);
+    if (chatbotMascot) chatbotMascot.setFinishTalking();
+    return "Oops, my internet connection is sleeping! Can you try again?";
+  }
 }
 
 function createStaticHitbox(originalObject) {
@@ -1994,17 +1994,6 @@ function handleRaycasterInteraction() {
       }
     });
 
-    Object.entries(socialLinks).forEach(([key, url]) => {
-      if (object.name.includes(key)) {
-        const newWindow = window.open();
-
-        newWindow.opener = null;
-        newWindow.location = url;
-        newWindow.target = "_blank";
-        newWindow.rel = "noopener noreferrer";
-      }
-    });
-
     if (object.name.includes("Work_Button")) {
       showModal(modals.work);
     } else if (object.name.includes("About_Button")) {
@@ -2069,10 +2058,7 @@ function playHoverAnimation(objectHitbox, isHovering) {
       });
     } else if (
       object.name.includes("Contact_Button") ||
-      object.name.includes("My_Work_Button") ||
-      object.name.includes("GitHub") ||
-      object.name.includes("YouTube") ||
-      object.name.includes("Twitter")
+      object.name.includes("My_Work_Button")
     ) {
       gsap.to(object.rotation, {
         x: object.userData.initialRotation.x + Math.PI / 10,
@@ -2105,10 +2091,7 @@ function playHoverAnimation(objectHitbox, isHovering) {
     if (
       object.name.includes("About_Button") ||
       object.name.includes("Contact_Button") ||
-      object.name.includes("My_Work_Button") ||
-      object.name.includes("GitHub") ||
-      object.name.includes("YouTube") ||
-      object.name.includes("Twitter")
+      object.name.includes("My_Work_Button")
     ) {
       gsap.to(object.rotation, {
         x: object.userData.initialRotation.x,
@@ -2508,7 +2491,43 @@ const render = (timestamp) => {
     // Get all the objects the raycaster is currently shooting through / intersecting with
     currentIntersects = raycaster.intersectObjects(raycasterObjects);
 
-    for (let i = 0; i < currentIntersects.length; i++) {}
+    if (currentIntersects.length > 0) {
+      const firstHit = currentIntersects[0];
+      const targetObject = hitboxToObjectMap.get(firstHit.object);
+
+      if (targetObject && /^(Rock_|Seaweed_)/.test(targetObject.name)) {
+        const firstVisibleHit = raycaster
+          .intersectObject(scene, true)
+          .find(({ object }) => {
+            if (
+              !object.isMesh ||
+              !object.visible ||
+              object.name.endsWith("_Hitbox")
+            ) {
+              return false;
+            }
+
+            const materials = Array.isArray(object.material)
+              ? object.material
+              : [object.material];
+
+            return materials.some(
+              (material) =>
+                material &&
+                material.visible &&
+                (!material.transparent || material.opacity > 0)
+            );
+          });
+
+        if (
+          firstVisibleHit &&
+          firstVisibleHit.object !== targetObject &&
+          firstVisibleHit.distance + 0.01 < firstHit.distance
+        ) {
+          currentIntersects = [];
+        }
+      }
+    }
 
     if (currentIntersects.length > 0) {
       const currentIntersectObject = currentIntersects[0].object;

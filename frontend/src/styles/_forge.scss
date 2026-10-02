@@ -6,6 +6,9 @@
   height: 100%;
   font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
+.work.modal {
+  min-height: 0;
+}
 .forge-modal button,
 .forge-modal input {
   font-family: inherit;
@@ -57,7 +60,7 @@
   display: grid;
   grid-template-columns: 1.05fr 1.35fr;
   gap: 26px;
-  min-height: 620px;
+  min-height: calc(620px - 1cm);
 }
 .forge-panel {
   background: rgba(255, 255, 255, 0.08);
@@ -66,7 +69,7 @@
 .forge-source-panel {
   padding: 16px 18px 0;
   border: 4px solid vars.$base-purple;
-  height: 100%;
+  height: auto;
 }
 .forge-output-panel {
   position: relative;
@@ -204,7 +207,8 @@
   display: none;
 }
 .forge-submit-btn,
-.forge-export-btn {
+.forge-export-btn,
+.forge-export-model-btn {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -222,9 +226,26 @@
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.18em;
+  transition: background 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
 }
 .forge-submit-btn {
   margin-top: 6px;
+  letter-spacing: 0.08em;
+}
+.forge-action-icon {
+  display: block;
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.forge-sparkles-icon {
+  width: 19px;
+  height: 19px;
 }
 .forge-helper-text {
   margin: 18px 0 22px;
@@ -265,10 +286,10 @@
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
-  min-height: 470px;
+  min-height: calc(430px - 1cm);
   border-radius: 26px;
   background: rgba(255, 255, 255, 0.12);
-  padding: 18px 18px 18px;
+  padding: 8px 18px 6px;
   --result-image: none;
   border: 3px solid vars.$base-purple; 
   overflow: hidden;
@@ -286,8 +307,8 @@
 }
 .forge-viewer {
   position: relative;
-  width: min(440px, 72vw);
-  height: min(350px, 60vw);
+  width: min(520px, 100%);
+  height: min(345px, 48vw);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -295,7 +316,7 @@
   user-select: none;
   cursor: grab;
   touch-action: none;
-  margin-top: 10px;
+  margin-top: 14px;
   margin-inline: auto;
 }
 .forge-model {
@@ -329,20 +350,277 @@
 .face-bottom { transform: rotateX(-90deg) translateZ(60px); }
 
 .forge-output-caption {
-  margin-top: 32px;
+  margin-top: 12px;
   color: rgba(36, 31, 40, 0.7);
-  font-size: 1.15rem;
+  font-size: 0.9rem;
   text-align: center;
   font-family: 'Nunito', sans-serif;
-  font-weight: 600;
-  line-height: 1.5;
+  font-weight: 800;
+  line-height: 1.35;
   padding-bottom: 2px;
 }
-.forge-export-btn {
+.forge-auto-rotate-control {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  min-height: 60px;
+  margin-top: 12px;
+  padding: 9px 14px;
+  border: 2px solid rgba(205, 179, 214, 0.8);
+  border-radius: 16px;
+  background: rgba(205, 179, 214, 0.2);
+  color: vars.$base-dark-purple;
+}
+.forge-auto-rotate-icon {
+  flex: 0 0 auto;
+  width: 25px;
+  height: 25px;
+  fill: none;
+  stroke: vars.$base-purple;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.forge-auto-rotate-copy {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+  gap: 1px;
+  font-family: 'Nunito', sans-serif;
+}
+.forge-auto-rotate-copy strong {
+  font-size: 0.82rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+.forge-auto-rotate-copy small {
+  color: rgba(108, 63, 124, 0.72);
+  font-size: 0.7rem;
+  font-style: italic;
+  font-weight: 600;
+  line-height: 1.25;
+}
+.forge-auto-rotate-state {
+  flex: 0 0 auto;
+  color: rgba(108, 63, 124, 0.75);
+  font-family: 'Baloo 2', sans-serif;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+.forge-auto-rotate-toggle {
+  position: relative;
+  flex: 0 0 auto;
+  width: 44px;
+  height: 26px;
+  padding: 0;
+  border: 2px solid vars.$base-purple;
+  border-radius: 999px;
+  background: rgba(108, 63, 124, 0.18);
+  cursor: pointer;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+.forge-auto-rotate-toggle::after {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(58, 37, 74, 0.22);
+  content: "";
+  transition: transform 0.2s ease;
+}
+.forge-auto-rotate-toggle.is-on {
+  background: vars.$base-purple;
+}
+.forge-auto-rotate-toggle.is-on::after {
+  transform: translateX(18px);
+}
+.forge-auto-rotate-toggle:focus-visible {
+  outline: 3px solid rgba(110, 94, 156, 0.35);
+  outline-offset: 3px;
+}
+.forge-export-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+  width: 100%;
   margin-top: 18px;
+}
+.forge-export-menu-wrap {
+  position: relative;
+  min-width: 0;
+}
+.forge-export-model-btn {
+  min-width: 0;
+  height: 100%;
+  margin: 0;
+  padding: 8px 12px;
+  gap: 6px;
+  font-size: 0.8rem;
+  letter-spacing: 0.045em;
+}
+.forge-export-model-btn:hover,
+.forge-export-model-btn[aria-expanded="true"],
+.forge-export-2d-btn:hover,
+.forge-export-2d-btn[aria-expanded="true"] {
+  background: rgba(205, 179, 214, 0.72);
+  transform: translateY(-1px);
+}
+.forge-export-cube-icon,
+.forge-export-chevron {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.forge-export-chevron {
+  width: 16px;
+  height: 16px;
+  transition: transform 0.18s ease;
+}
+.forge-export-model-btn[aria-expanded="true"] .forge-export-chevron {
+  transform: rotate(180deg);
+}
+.forge-export-2d-btn[aria-expanded="true"] .forge-export-chevron {
+  transform: rotate(180deg);
+}
+.forge-export-btn {
+  min-width: 0;
+  margin: 0;
+  padding: 8px 12px;
+  font-size: 0.8rem;
+  letter-spacing: 0.045em;
+}
+.forge-export-menu {
+  position: absolute;
+  z-index: 10;
+  left: 0;
+  bottom: calc(100% + 10px);
+  width: min(290px, calc(100vw - 48px));
+  padding: 8px;
+  border: 3px solid vars.$base-purple;
+  border-radius: 17px;
+  background: #fff;
+  box-shadow: 0 12px 30px rgba(58, 37, 74, 0.18);
+}
+.forge-export-menu[hidden] {
+  display: none;
+}
+.forge-export-menu-title {
+  margin: 0 0 4px;
+  padding: 7px 10px 9px;
+  border-bottom: 1px solid rgba(110, 94, 156, 0.22);
+  color: vars.$base-dark-purple;
+  font-family: 'Baloo 2', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.forge-export-menu-subtitle {
+  margin: 0;
+  padding: 0 10px 9px;
+  color: rgba(74, 54, 88, 0.72);
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.7rem;
+  line-height: 1.35;
+}
+.forge-export-option {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 60px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: vars.$base-dark-purple;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.16s ease, transform 0.16s ease;
+}
+.forge-export-option:hover,
+.forge-export-option:focus-visible,
+.forge-export-option.is-selected {
+  background: rgba(205, 179, 214, 0.9);
+}
+.forge-export-option:hover {
+  transform: translateX(2px);
+}
+.forge-export-option:focus-visible {
+  outline: 2px solid vars.$base-purple;
+  outline-offset: 1px;
+}
+.forge-export-format-tag {
+  display: grid;
+  place-items: center;
+  min-height: 32px;
+  border: 2px solid vars.$base-purple;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.62);
+  color: vars.$base-dark-purple;
+  font-family: 'Baloo 2', sans-serif;
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+.forge-export-image-option {
+  grid-template-columns: 52px minmax(0, 1fr);
+  min-height: 64px;
+}
+.forge-export-image-icon {
+  width: 19px;
+  height: 19px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.forge-export-option-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  font-family: 'Nunito', sans-serif;
+}
+.forge-export-option-copy strong {
+  font-size: 0.9rem;
+  font-weight: 800;
+  line-height: 1.1;
+}
+.forge-export-option-copy small {
+  color: rgba(74, 54, 88, 0.72);
+  font-size: 0.68rem;
+  font-weight: 600;
+  line-height: 1.25;
+}
+.forge-export-status {
+  margin: 6px 8px 4px;
+  color: vars.$base-dark-purple;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+.forge-export-status[hidden] {
+  display: none;
 }
 
 @media (max-width: 900px) {
+  .work.modal {
+    min-height: auto;
+  }
   .work, .about, .contact {
     width: min(960px, 92vw);
     min-height: auto;
@@ -354,5 +632,44 @@
     width: min(520px, 93vw);
     padding: 14px 12px 20px;
     border-width: 5px;
+  }
+  .forge-export-actions {
+    gap: 8px;
+  }
+  .forge-export-model-btn,
+  .forge-export-btn {
+    gap: 5px;
+    padding: 8px 6px;
+    font-size: 0.72rem;
+    letter-spacing: 0.035em;
+  }
+  .forge-export-cube-icon {
+    width: 16px;
+    height: 16px;
+  }
+  .forge-export-chevron {
+    width: 13px;
+    height: 13px;
+  }
+  .forge-auto-rotate-control {
+    gap: 8px;
+    padding-inline: 9px;
+  }
+  .forge-auto-rotate-icon {
+    width: 21px;
+    height: 21px;
+  }
+  .forge-auto-rotate-copy small {
+    font-size: 0.62rem;
+  }
+  .forge-auto-rotate-state {
+    font-size: 0.6rem;
+  }
+  .forge-auto-rotate-toggle {
+    width: 40px;
+    height: 24px;
+  }
+  .forge-auto-rotate-toggle.is-on::after {
+    transform: translateX(14px);
   }
 }

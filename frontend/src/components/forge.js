@@ -2,13 +2,28 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
+import { OBJExporter } from 'three/addons/exporters/OBJExporter.js';
+import { STLExporter } from 'three/addons/exporters/STLExporter.js';
+import { FBXExporter } from '@comfyorg/fbx-exporter-three';
 
 export function initForge() {
   const forgeModeButtons = document.querySelectorAll(".forge-mode-btn");
   const forgeUploadCards = document.querySelectorAll(".forge-upload-card.optional");
   const forgeInputFields = document.querySelectorAll(".forge-input");
   const forgeViewer = document.getElementById("forge-viewer");
-  const forgeExportBtn = document.querySelector(".forge-export-btn");
+  const forgeExport2DBtn = document.querySelector(".forge-export-2d-btn");
+  const forgeExport2DMenu = document.querySelector(".forge-export-2d-menu");
+  const forgeExport2DMenuWrap = document.querySelector(".forge-export-2d-menu-wrap");
+  const forgeExport2DOptions = document.querySelectorAll(".forge-export-image-option");
+  const forgeExport2DStatus = document.querySelector(".forge-export-2d-status");
+  const forgeExportModelBtn = document.querySelector(".forge-export-model-btn");
+  const forgeExportMenu = document.querySelector(".forge-export-menu");
+  const forgeExportMenuWrap = document.querySelector(".forge-export-menu-wrap");
+  const forgeExportOptions = document.querySelectorAll(".forge-export-option");
+  const forgeExportStatus = document.querySelector(".forge-export-status");
+  const forgeAutoRotateToggle = document.querySelector(".forge-auto-rotate-toggle");
+  const forgeAutoRotateState = document.querySelector(".forge-auto-rotate-state");
   const forgeSubmitBtn = document.querySelector(".forge-submit-btn");
   const forgeOutputStage = document.querySelector(".forge-output-stage");
   const placeholderModel = forgeViewer?.querySelector(".forge-model");
@@ -17,6 +32,10 @@ export function initForge() {
   let currentPoseFile = null; // Chứa ảnh Dáng (nếu có)
   let currentMode = "single"; // Lưu trạng thái mode hiện tại
   let isActualModelReady = false;
+  let currentModel = null;
+  let currentRenderer = null;
+  let modelControls = null;
+  let isAutoRotateEnabled = true;
 
   const applyPlaceholderTransform = (rotationX, rotationY, scaleValue) => {
     if (!placeholderModel) return;
@@ -77,7 +96,7 @@ export function initForge() {
     );
 
     const animatePlaceholder = () => {
-      if (!isActualModelReady && !isDragging) {
+      if (!isActualModelReady && isAutoRotateEnabled && !isDragging) {
         rotationY += 0.08;
         applyPlaceholderTransform(rotationX, rotationY, scaleValue);
       }
@@ -106,6 +125,58 @@ export function initForge() {
 
   forgeModeButtons.forEach((button) => {
     button.addEventListener("click", () => setForgeMode(button.dataset.mode));
+  });
+
+  const setExportMenuOpen = (isOpen) => {
+    if (!forgeExportMenu || !forgeExportModelBtn) return;
+    forgeExportMenu.hidden = !isOpen;
+    forgeExportModelBtn.setAttribute("aria-expanded", String(isOpen));
+  };
+
+  forgeExportModelBtn?.addEventListener("click", () => {
+    setExportMenuOpen(forgeExportMenu?.hidden ?? false);
+  });
+
+  const setExport2DMenuOpen = (isOpen) => {
+    if (!forgeExport2DMenu || !forgeExport2DBtn) return;
+    forgeExport2DMenu.hidden = !isOpen;
+    forgeExport2DBtn.setAttribute("aria-expanded", String(isOpen));
+  };
+
+  forgeExport2DBtn?.addEventListener("click", () => {
+    setExport2DMenuOpen(forgeExport2DMenu?.hidden ?? false);
+  });
+
+  document.addEventListener("click", (event) => {
+    if (!forgeExportMenuWrap?.contains(event.target)) {
+      setExportMenuOpen(false);
+    }
+    if (!forgeExport2DMenuWrap?.contains(event.target)) {
+      setExport2DMenuOpen(false);
+    }
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      if (forgeExportMenu && !forgeExportMenu.hidden) {
+        setExportMenuOpen(false);
+        forgeExportModelBtn?.focus();
+      }
+      if (forgeExport2DMenu && !forgeExport2DMenu.hidden) {
+        setExport2DMenuOpen(false);
+        forgeExport2DBtn?.focus();
+      }
+    }
+  });
+
+  forgeAutoRotateToggle?.addEventListener("click", () => {
+    isAutoRotateEnabled = !isAutoRotateEnabled;
+    if (modelControls) modelControls.autoRotate = isAutoRotateEnabled;
+    forgeAutoRotateToggle.classList.toggle("is-on", isAutoRotateEnabled);
+    forgeAutoRotateToggle.setAttribute("aria-checked", String(isAutoRotateEnabled));
+    if (forgeAutoRotateState) {
+      forgeAutoRotateState.textContent = isAutoRotateEnabled ? "ON" : "OFF";
+    }
   });
 
   // Sửa lại logic chọn ảnh để phân biệt input nào đang được thao tác
@@ -142,6 +213,9 @@ export function initForge() {
       forgeSubmitBtn.disabled = true;
       forgeOutputStage?.classList.add("is-ready");
       forgeSubmitBtn.textContent = "Đang phối hợp AI...";
+      currentModel = null;
+      currentRenderer = null;
+      modelControls = null;
 
       const formData = new FormData();
       formData.append("mode", currentMode);
@@ -185,7 +259,7 @@ export function initForge() {
             forgeSubmitBtn.disabled = false;
 
             const outputData = statusData.data.output || {};
-            let modelUrl = outputData.model || outputData.pbr || outputData.base_model;
+            let modelUrl = outputData.model?.url || outputData.model || outputData.pbr || outputData.base_model;
 
             if (!modelUrl || typeof modelUrl !== 'string') {
               JSON.stringify(outputData, (key, value) => {
@@ -233,41 +307,62 @@ export function initForge() {
     const camera = new THREE.PerspectiveCamera(45, forgeViewer.clientWidth / forgeViewer.clientHeight, 0.1, 100);
     camera.position.set(0, 1.5, 4);
 
-    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+    const renderer = new THREE.WebGLRenderer({
+      alpha: true,
+      antialias: true,
+      preserveDrawingBuffer: true,
+    });
+    currentRenderer = renderer;
     renderer.setSize(forgeViewer.clientWidth, forgeViewer.clientHeight);
     renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
     forgeViewer.appendChild(renderer.domElement);
 
-    const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 2.0);
     scene.add(ambientLight);
     const dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
     dirLight.position.set(5, 5, 5);
     scene.add(dirLight);
 
+
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
-    controls.autoRotate = true; 
+    controls.autoRotate = isAutoRotateEnabled;
     controls.autoRotateSpeed = 2.0;
+    modelControls = controls;
 
     const loader = new GLTFLoader();
     loader.load(
       glbUrl,
       (gltf) => {
         const model = gltf.scene;
+
+        model.traverse((child) => {
+          if (child.isMesh) {
+            // Tính toán lại bề mặt để xóa các góc cạnh thô ráp
+            child.geometry.computeVertexNormals();
+            if (child.material) {
+              child.material.flatShading = false; // Tắt kiểu render khối vuông
+              child.material.needsUpdate = true;
+            }
+          }
+        });
         
         const box = new THREE.Box3().setFromObject(model);
         const size = box.getSize(new THREE.Vector3());
         const center = box.getCenter(new THREE.Vector3());
         
         const maxAxis = Math.max(size.x, size.y, size.z);
-        model.scale.multiplyScalar(2.0 / maxAxis);
-        
-        box.setFromObject(model);
-        box.getCenter(center);
-        model.position.sub(center);
+        const previewScale = 2.0 / maxAxis;
+        const previewRoot = new THREE.Group();
+        previewRoot.scale.setScalar(previewScale);
+        previewRoot.position.copy(center).multiplyScalar(-previewScale);
+        previewRoot.add(model);
 
-        scene.add(model);
+        currentModel = model;
+        scene.add(previewRoot);
+        if (forgeExportStatus) forgeExportStatus.hidden = true;
       },
       undefined,
       (error) => console.error("Lỗi tải GLB:", error)
@@ -287,74 +382,158 @@ export function initForge() {
     });
   }
 
-  // 5. Tính năng Export ra ảnh 2D giữ nguyên thuật toán Canvas
-  forgeExportBtn?.addEventListener("click", () => {
-    const canvas = document.createElement("canvas");
-    canvas.width = 1200;
-    canvas.height = 800;
-    const ctx = canvas.getContext("2d");
-    ctx.fillStyle = "#f3edf4";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
-    ctx.fillStyle = "#eee0f4";
-    ctx.strokeStyle = "#6e5e9c";
-    ctx.lineWidth = 6;
-    const panelX = 260;
-    const panelY = 110;
-    const panelW = 680;
-    const panelH = 520;
-    roundedRect(ctx, panelX, panelY, panelW, panelH, 28);
-    ctx.fill();
-    ctx.stroke();
-    
-    ctx.save();
-    ctx.translate(canvas.width / 2, canvas.height / 2);
-    ctx.rotate(-18 * (Math.PI / 180));
-    ctx.fillStyle = "#d4c0e5";
-    ctx.strokeStyle = "#6e5e9c";
-    ctx.lineWidth = 6;
-    ctx.beginPath();
-    ctx.moveTo(-130, 40);
-    ctx.lineTo(-10, -120);
-    ctx.lineTo(140, -30);
-    ctx.lineTo(25, 120);
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
-    
-    ctx.fillStyle = "#f5f2f6";
-    ctx.fillRect(-92, -62, 175, 140);
-    ctx.strokeRect(-92, -62, 175, 140);
-    ctx.restore();
-    
-    ctx.fillStyle = "#6c3f7c";
-    ctx.font = '700 70px "Trebuchet MS", sans-serif';
-    ctx.textAlign = "center";
-    ctx.fillText("3D", canvas.width / 2, canvas.height / 2 + 20);
-    
-    ctx.fillStyle = "#6c3f7c";
-    ctx.font = '500 36px "Trebuchet MS", sans-serif';
-    ctx.fillText("Mô hình 3D sẽ hiển thị ở đây", canvas.width / 2, canvas.height / 2 + 110);
-    
+  const canvasToBlob = (canvas) =>
+    new Promise((resolve, reject) => {
+      canvas.toBlob((blob) => {
+        if (blob) resolve(blob);
+        else reject(new Error("Could not capture the current 3D view."));
+      }, "image/png");
+    });
+
+  const downloadExport = (data, format, mimeType, filename = `3d-forge-model.${format}`) => {
+    const blob = new Blob([data], { type: mimeType });
+    const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
-    link.href = canvas.toDataURL("image/png");
-    link.download = "3d-forge-export.png";
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
     link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+
+  const exportModel = async (format) => {
+    forgeExportOptions.forEach((option) => {
+      const isSelected = option.dataset.format === format;
+      option.classList.toggle("is-selected", isSelected);
+      option.setAttribute("aria-pressed", String(isSelected));
+    });
+
+    if (!currentModel) {
+      if (forgeExportStatus) {
+        forgeExportStatus.textContent = "Generate a 3D model first to export.";
+        forgeExportStatus.hidden = false;
+      }
+      return;
+    }
+
+    forgeExportOptions.forEach((option) => { option.disabled = true; });
+    if (forgeExportStatus) {
+      forgeExportStatus.textContent = `Preparing ${format.toUpperCase()} export...`;
+      forgeExportStatus.hidden = false;
+    }
+
+    try {
+      let data;
+      let mimeType;
+
+      if (format === "glb") {
+        data = await new Promise((resolve, reject) => {
+          new GLTFExporter().parse(currentModel, resolve, reject, { binary: true });
+        });
+        mimeType = "model/gltf-binary";
+      } else if (format === "fbx") {
+        data = await new FBXExporter().parseAsync(currentModel);
+        mimeType = "application/octet-stream";
+      } else if (format === "obj") {
+        data = new OBJExporter().parse(currentModel);
+        mimeType = "text/plain";
+      } else if (format === "stl") {
+        data = new STLExporter().parse(currentModel, { binary: true });
+        mimeType = "model/stl";
+      } else {
+        throw new Error("Unsupported export format.");
+      }
+
+      downloadExport(data, format, mimeType);
+      if (forgeExportStatus) forgeExportStatus.hidden = true;
+      setExportMenuOpen(false);
+    } catch (error) {
+      console.error("3D model export failed:", error);
+      if (forgeExportStatus) {
+        forgeExportStatus.textContent = `Could not export ${format.toUpperCase()}. Try GLB instead.`;
+        forgeExportStatus.hidden = false;
+      }
+    } finally {
+      forgeExportOptions.forEach((option) => { option.disabled = false; });
+    }
+  };
+
+  forgeExportOptions.forEach((option) => {
+    option.addEventListener("click", () => exportModel(option.dataset.format));
   });
 
-  function roundedRect(context, x, y, width, height, radius) {
-    context.beginPath();
-    context.moveTo(x + radius, y);
-    context.lineTo(x + width - radius, y);
-    context.quadraticCurveTo(x + width, y, x + width, y + radius);
-    context.lineTo(x + width, y + height - radius);
-    context.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-    context.lineTo(x + radius, y + height);
-    context.quadraticCurveTo(x, y + height, x, y + height - radius);
-    context.lineTo(x, y + radius);
-    context.quadraticCurveTo(x, y, x + radius, y);
-    context.closePath();
-  }
+  const export2D = async (mode) => {
+    forgeExport2DOptions.forEach((option) => {
+      const isSelected = option.dataset.exportMode === mode;
+      option.classList.toggle("is-selected", isSelected);
+      option.setAttribute("aria-pressed", String(isSelected));
+    });
+
+    if (!currentRenderer || !currentModel) {
+      if (forgeExport2DStatus) {
+        forgeExport2DStatus.textContent = "Generate a 3D model first to export this view.";
+        forgeExport2DStatus.hidden = false;
+      }
+      return;
+    }
+
+    if (mode === "ai" && !currentFileToUpload) {
+      if (forgeExport2DStatus) {
+        forgeExport2DStatus.textContent = "Upload the source image again to use AI style reconstruction.";
+        forgeExport2DStatus.hidden = false;
+      }
+      return;
+    }
+
+    forgeExport2DOptions.forEach((option) => { option.disabled = true; });
+    if (forgeExport2DStatus) {
+      forgeExport2DStatus.textContent = mode === "ai"
+        ? "Reconstructing the image with AI..."
+        : "Capturing the current 3D view...";
+      forgeExport2DStatus.hidden = false;
+    }
+
+    try {
+      const renderBlob = await canvasToBlob(currentRenderer.domElement);
+
+      if (mode === "direct") {
+        downloadExport(renderBlob, "png", "image/png", "3d-forge-render.png");
+      } else {
+        const formData = new FormData();
+        formData.append("source", currentFileToUpload, currentFileToUpload.name || "source-image");
+        formData.append("render", renderBlob, "3d-forge-current-view.png");
+
+        const response = await fetch("/api/export-2d/reconstruct", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || "AI image reconstruction failed.");
+        }
+
+        const imageBlob = await response.blob();
+        downloadExport(imageBlob, "jpg", "image/jpeg", "3d-forge-style-reconstruction.jpg");
+      }
+
+      if (forgeExport2DStatus) forgeExport2DStatus.hidden = true;
+      setExport2DMenuOpen(false);
+    } catch (error) {
+      console.error("2D export failed:", error);
+      if (forgeExport2DStatus) {
+        forgeExport2DStatus.textContent = error.message || "Could not export this 2D image.";
+        forgeExport2DStatus.hidden = false;
+      }
+    } finally {
+      forgeExport2DOptions.forEach((option) => { option.disabled = false; });
+    }
+  };
+
+  forgeExport2DOptions.forEach((option) => {
+    option.addEventListener("click", () => export2D(option.dataset.exportMode));
+  });
 
   // Khởi chạy trạng thái mặc định
   setForgeMode("single");

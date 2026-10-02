@@ -1,6 +1,6 @@
-@use "../../../node_modules/include-media/dist/_include-media.scss";
+@use "../../node_modules/include-media/dist/_include-media.scss";
 
-@forward "../../../node_modules/include-media/dist/_include-media.scss";
+@forward "../../node_modules/include-media/dist/_include-media.scss";
 
 $breakpoints: (
   "tablet": 768px,
