@@ -6,10 +6,13 @@ import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
 import { OBJExporter } from 'three/addons/exporters/OBJExporter.js';
 import { STLExporter } from 'three/addons/exporters/STLExporter.js';
 import { FBXExporter } from '@comfyorg/fbx-exporter-three';
+import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js';
 
 export function initForge() {
   const forgeModeButtons = document.querySelectorAll(".forge-mode-btn");
-  const forgeUploadCards = document.querySelectorAll(".forge-upload-card.optional");
+  const forgeSourcePanel = document.getElementById("forge-source-panel");
+  const helperText = document.getElementById("forge-helper-text");
+  const forgeSelectionPrompt = document.getElementById("forge-selection-prompt");
   const forgeInputFields = document.querySelectorAll(".forge-input");
   const forgeViewer = document.getElementById("forge-viewer");
   const forgeExport2DBtn = document.querySelector(".forge-export-2d-btn");
@@ -24,18 +27,138 @@ export function initForge() {
   const forgeExportStatus = document.querySelector(".forge-export-status");
   const forgeAutoRotateToggle = document.querySelector(".forge-auto-rotate-toggle");
   const forgeAutoRotateState = document.querySelector(".forge-auto-rotate-state");
-  const forgeSubmitBtn = document.querySelector(".forge-submit-btn");
+  const forgeSubmitBtn = document.getElementById("btn-single-gen"); // Nút Generate 3D cũ (Single)
+  const forgeParallaxBtn = document.getElementById("btn-parallax"); // Nút Parallax Space mới
   const forgeOutputStage = document.querySelector(".forge-output-stage");
+  const sourceRequiredDialog = document.querySelector(".forge-source-required-dialog");
   const placeholderModel = forgeViewer?.querySelector(".forge-model");
+  const showSourceRequiredDialog = () => {
+    if (!sourceRequiredDialog || sourceRequiredDialog.open) return;
+    sourceRequiredDialog.showModal();
+  };
 
-  let currentFileToUpload = null; // Chứa ảnh Nguồn
-  let currentPoseFile = null; // Chứa ảnh Dáng (nếu có)
-  let currentMode = "single"; // Lưu trạng thái mode hiện tại
+  let currentFileToUpload = null; 
+  let currentPoseFile = null; 
+  let currentMode = "single"; 
+  const modeStates = {
+    single: {
+      sourceFile: null,
+      sourcePreviewUrl: null,
+      poseFile: null,
+      posePreviewUrl: null,
+      modelUrl: null,
+    },
+    multiple: {
+      sourceFile: null,
+      sourcePreviewUrl: null,
+      depthMapUrl: null,
+      magicModelUrls: [],
+    },
+  };
+  let previewVersion = 0;
+  let isMagicWandExpanded = false;
+  const magicWandMaxCredits = 2;
+  let magicWandCredits = magicWandMaxCredits;
+  let isMagicWandActive = false;
+  let isMagicWandPending = false;
+  let isGenerationInProgress = false;
+  let activeGenerationButton = null;
+  let selectedMagicPoint = null;
+  let selectedIsolatedImageUrl = null;
   let isActualModelReady = false;
   let currentModel = null;
   let currentRenderer = null;
   let modelControls = null;
+  let activeScene = null;
+  let activeCamera = null;
+  let activeRenderer = null;
+  let animationFrameId = null;
+  let resizeHandler = null;
   let isAutoRotateEnabled = true;
+  let helperTextTimer;
+  let magicPromptTimer;
+
+  // Quản lý các vật thể được tạo bằng Magic Wand
+  let magicObjectsGroup = null;
+  let selectedMagicObject = null;
+  let magicTransformControls = null;
+  let magicRaycaster = new THREE.Raycaster();
+  let magicPointer = new THREE.Vector2();
+
+  const forgeMagicBtn = document.getElementById("btn-magic");
+  const forgeMagicCreationBtn = document.getElementById("btn-magic-creation");
+  const forgeMultiActions = document.querySelector(".forge-multi-actions");
+  const forgeBody = document.querySelector(".forge-body");
+  const forgeMagicCredits = document.querySelector(".forge-magic-credits");
+  const forgeMagicCreditsLabel = document.querySelector(".forge-magic-credits-label");
+  const forgeMagicCreditsTrack = document.querySelector(".forge-magic-credits-track");
+  const forgeMagicCreditsFill = document.querySelector(".forge-magic-credits-fill");
+  const sourcePreviewImg = document.querySelector(".forge-upload-card.required .forge-preview");
+  const sourceSelectionImg = document.querySelector(".forge-upload-card.required .forge-selection-preview");
+  const sourceLabelCard = document.querySelector(".forge-upload-card.required");
+  const sourceUploadInput = document.querySelector('.forge-input[data-slot="source"]');
+  const poseUploadInput = document.querySelector('.forge-input[data-slot="pose"]');
+  const posePreviewImg = poseUploadInput?.closest(".forge-upload-card")?.querySelector(".forge-preview");
+  const poseLabelCard = poseUploadInput?.closest(".forge-upload-card");
+  const forgeMagicCreationBtnLabel = forgeMagicCreationBtn?.querySelector("span");
+
+  const setGenerationBusy = (isBusy, activeButton = null) => {
+    isGenerationInProgress = isBusy;
+    activeGenerationButton = isBusy ? activeButton : null;
+    [forgeSubmitBtn, forgeParallaxBtn].forEach((button) => {
+      if (!button) return;
+      button.disabled = isBusy;
+      button.classList.toggle("is-processing", isBusy && button === activeButton);
+    });
+    updateMagicWandState();
+  };
+
+  const createProgressEstimator = (button, labelPrefix) => {
+    const label = button?.querySelector("span");
+    if (!button || !label) return null;
+
+    const startedAt = Date.now();
+    let lastProgress = -1;
+    const setProgress = (progress) => {
+      if (progress === lastProgress) return;
+      lastProgress = progress;
+      button.style.setProperty("--forge-progress", `${progress}%`);
+      label.textContent = `${labelPrefix} ~${progress}%`;
+    };
+    const updateProgress = () => {
+      const elapsedSeconds = (Date.now() - startedAt) / 1000;
+      const estimatedProgress = Math.min(95, Math.max(1, Math.floor((elapsedSeconds / 70) * 95)));
+      setProgress(estimatedProgress);
+    };
+
+    updateProgress();
+    const timer = window.setInterval(updateProgress, 100);
+    return {
+      complete() {
+        window.clearInterval(timer);
+        lastProgress = -1;
+        button.style.setProperty("--forge-progress", "100%");
+        label.textContent = `${labelPrefix} 100%`;
+      },
+      reset() {
+        window.clearInterval(timer);
+        button.style.removeProperty("--forge-progress");
+      },
+    };
+  };
+
+  const updateMagicWandCredits = () => {
+    if (forgeMagicCreditsLabel) {
+      forgeMagicCreditsLabel.textContent = `${magicWandCredits}/${magicWandMaxCredits} generations left`;
+    }
+    if (forgeMagicCreditsTrack) {
+      forgeMagicCreditsTrack.setAttribute("aria-valuemax", String(magicWandMaxCredits));
+      forgeMagicCreditsTrack.setAttribute("aria-valuenow", String(magicWandCredits));
+    }
+    if (forgeMagicCreditsFill) {
+      forgeMagicCreditsFill.style.transform = `scaleX(${magicWandCredits / magicWandMaxCredits})`;
+    }
+  };
 
   const applyPlaceholderTransform = (rotationX, rotationY, scaleValue) => {
     if (!placeholderModel) return;
@@ -49,12 +172,10 @@ export function initForge() {
     let isDragging = false;
     let lastPointerX = 0;
     let lastPointerY = 0;
-
     const resetPlaceholderPointer = () => {
       isDragging = false;
       forgeViewer.style.cursor = "grab";
     };
-
     forgeViewer.addEventListener("pointerdown", (event) => {
       if (isActualModelReady) return;
       isDragging = true;
@@ -62,116 +183,200 @@ export function initForge() {
       lastPointerY = event.clientY;
       forgeViewer.style.cursor = "grabbing";
     });
-
     forgeViewer.addEventListener("pointermove", (event) => {
       if (!isDragging || isActualModelReady) return;
-
       const deltaX = event.clientX - lastPointerX;
       const deltaY = event.clientY - lastPointerY;
-
       rotationY += deltaX * 0.35;
       rotationX -= deltaY * 0.25;
-
       lastPointerX = event.clientX;
       lastPointerY = event.clientY;
-
       applyPlaceholderTransform(rotationX, rotationY, scaleValue);
     });
-
     forgeViewer.addEventListener("pointerup", resetPlaceholderPointer);
     forgeViewer.addEventListener("pointerleave", resetPlaceholderPointer);
     forgeViewer.addEventListener("pointercancel", resetPlaceholderPointer);
-
     forgeViewer.addEventListener(
       "wheel",
       (event) => {
         if (isActualModelReady) return;
         event.preventDefault();
-
         const delta = event.deltaY * -0.001;
         scaleValue = Math.min(1.8, Math.max(0.7, scaleValue + delta));
         applyPlaceholderTransform(rotationX, rotationY, scaleValue);
       },
       { passive: false }
     );
-
     const animatePlaceholder = () => {
-      if (!isActualModelReady && isAutoRotateEnabled && !isDragging) {
+      if (!isActualModelReady && currentMode === "single" && isAutoRotateEnabled && !isDragging) {
         rotationY += 0.08;
         applyPlaceholderTransform(rotationX, rotationY, scaleValue);
       }
-
       requestAnimationFrame(animatePlaceholder);
     };
-
     requestAnimationFrame(animatePlaceholder);
     applyPlaceholderTransform(rotationX, rotationY, scaleValue);
   }
 
   // 1. Xử lý UI Tab Mode
+  const updateForgeHelperText = () => {
+    if (!helperText) return;
+
+    const isSingleMode = currentMode === "single";
+    const nextText = isSingleMode
+      ? "You only need <strong>a pose image</strong> when you want the subject in the source image to switch to a different pose."
+      : isMagicWandExpanded
+        ? ""
+        : "Select <strong>Parallax Space</strong> for quick 2.5D view, or <strong>Magic Wand</strong> to extract 3D items!";
+
+    if (helperText.innerHTML === nextText) return;
+
+    helperText.classList.add("is-changing");
+    window.clearTimeout(helperTextTimer);
+    helperTextTimer = window.setTimeout(() => {
+      helperText.innerHTML = nextText;
+      requestAnimationFrame(() => helperText.classList.remove("is-changing"));
+    }, 180);
+  };
+
+  const setUploadPreview = (preview, card, previewUrl) => {
+    if (!preview || !card) return;
+    if (previewUrl) {
+      preview.src = previewUrl;
+      card.classList.add("is-filled");
+    } else {
+      preview.removeAttribute("src");
+      card.classList.remove("is-filled");
+    }
+  };
+
+  const clearModeResult = (mode) => {
+    if (mode === "single") {
+      modeStates.single.modelUrl = null;
+    } else {
+      modeStates.multiple.depthMapUrl = null;
+      modeStates.multiple.magicModelUrls = [];
+    }
+  };
+
   const setForgeMode = (mode) => {
+    if (!modeStates[mode]) return;
+    const isModeChange = currentMode !== mode;
+    if (isModeChange) {
+      clearThreeJSPreview();
+      isMagicWandActive = false;
+      isMagicWandExpanded = false;
+      selectedMagicPoint = null;
+      selectedIsolatedImageUrl = null;
+    }
     currentMode = mode;
+    const isSingleMode = mode === "single";
+    const modeState = modeStates[mode];
+    currentFileToUpload = modeState.sourceFile;
+    currentPoseFile = isSingleMode ? modeState.poseFile : null;
+    if (sourceUploadInput) sourceUploadInput.value = "";
+    if (poseUploadInput) poseUploadInput.value = "";
+    setUploadPreview(sourcePreviewImg, sourceLabelCard, modeState.sourcePreviewUrl);
+    setUploadPreview(
+      posePreviewImg,
+      poseLabelCard,
+      isSingleMode ? modeStates.single.posePreviewUrl : null
+    );
+    if (modelControls) modelControls.autoRotate = isSingleMode && isAutoRotateEnabled;
+    if (isSingleMode) {
+      isMagicWandActive = false;
+      isMagicWandExpanded = false;
+      selectedMagicPoint = null;
+      selectedIsolatedImageUrl = null;
+      updateMagicWandState();
+    }
     forgeModeButtons.forEach((button) => {
       const isActive = button.dataset.mode === mode;
       button.classList.toggle("is-active", isActive);
       button.setAttribute("aria-pressed", String(isActive));
     });
+    forgeSourcePanel?.classList.toggle("multiple-mode-active", !isSingleMode);
+    const outputPanel = forgeViewer?.closest(".forge-output-panel");
+    const autoRotateControl = outputPanel?.querySelector(".forge-auto-rotate-control");
+    outputPanel?.classList.toggle("multiple-mode-active", !isSingleMode);
+    autoRotateControl?.setAttribute("aria-hidden", String(!isSingleMode));
+    autoRotateControl?.toggleAttribute("inert", !isSingleMode);
+    if (isModeChange) restoreModePreview(mode);
+    updateForgeHelperText();
+    updateMagicWandState();
+  };
 
-    const isSingleMode = mode === "single";
-    forgeUploadCards.forEach((card) => {
-      card.classList.toggle("is-disabled", !isSingleMode);
-    });
+  const updateMagicWandState = () => {
+    forgeMultiActions?.classList.toggle("is-magic-layout", isMagicWandExpanded);
+    forgeSourcePanel?.classList.toggle("is-magic-prompt-active", isMagicWandExpanded);
+    window.clearTimeout(magicPromptTimer);
+    magicPromptTimer = window.setTimeout(updateForgeHelperText, 180);
+    forgeMagicBtn?.setAttribute("aria-pressed", String(isMagicWandActive));
+    if (forgeMagicBtn) forgeMagicBtn.disabled = isMagicWandPending || isGenerationInProgress;
+    if (forgeMagicCreationBtn) {
+      forgeMagicCreationBtn.disabled =
+        !selectedMagicPoint ||
+        !selectedIsolatedImageUrl ||
+        isMagicWandPending ||
+        isGenerationInProgress;
+    }
+    forgeMagicBtn?.classList.toggle(
+      "is-processing",
+      isGenerationInProgress && activeGenerationButton === forgeMagicBtn
+    );
+    forgeMagicCreationBtn?.classList.toggle(
+      "is-processing",
+      isGenerationInProgress && activeGenerationButton === forgeMagicCreationBtn
+    );
+    if (sourceSelectionImg) {
+      sourceSelectionImg.hidden = !selectedIsolatedImageUrl;
+      if (selectedIsolatedImageUrl && sourceSelectionImg.src !== selectedIsolatedImageUrl) {
+        sourceSelectionImg.src = selectedIsolatedImageUrl;
+      } else if (!selectedIsolatedImageUrl) {
+        sourceSelectionImg.removeAttribute("src");
+      }
+    }
+    if (sourceLabelCard) {
+      sourceLabelCard.style.cursor = isMagicWandActive ? "crosshair" : "pointer";
+    }
+    const showCredits = currentMode === "multiple" && isMagicWandExpanded;
+    forgeMagicCredits?.setAttribute("aria-hidden", String(!showCredits));
+    forgeViewer?.closest(".forge-output-panel")?.classList.toggle("magic-wand-active", showCredits);
+    forgeBody?.classList.toggle("magic-wand-active", showCredits);
+    updateMagicWandCredits();
   };
 
   forgeModeButtons.forEach((button) => {
     button.addEventListener("click", () => setForgeMode(button.dataset.mode));
   });
 
+  // Quản lý các menu export và auto rotate (giữ nguyên logic cũ của bạn)
   const setExportMenuOpen = (isOpen) => {
     if (!forgeExportMenu || !forgeExportModelBtn) return;
     forgeExportMenu.hidden = !isOpen;
     forgeExportModelBtn.setAttribute("aria-expanded", String(isOpen));
   };
-
   forgeExportModelBtn?.addEventListener("click", () => {
     setExportMenuOpen(forgeExportMenu?.hidden ?? false);
   });
-
   const setExport2DMenuOpen = (isOpen) => {
     if (!forgeExport2DMenu || !forgeExport2DBtn) return;
     forgeExport2DMenu.hidden = !isOpen;
     forgeExport2DBtn.setAttribute("aria-expanded", String(isOpen));
   };
-
   forgeExport2DBtn?.addEventListener("click", () => {
     setExport2DMenuOpen(forgeExport2DMenu?.hidden ?? false);
   });
-
   document.addEventListener("click", (event) => {
-    if (!forgeExportMenuWrap?.contains(event.target)) {
-      setExportMenuOpen(false);
-    }
-    if (!forgeExport2DMenuWrap?.contains(event.target)) {
-      setExport2DMenuOpen(false);
-    }
-  });
-
-  document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape") {
-      if (forgeExportMenu && !forgeExportMenu.hidden) {
-        setExportMenuOpen(false);
-        forgeExportModelBtn?.focus();
-      }
-      if (forgeExport2DMenu && !forgeExport2DMenu.hidden) {
-        setExport2DMenuOpen(false);
-        forgeExport2DBtn?.focus();
-      }
-    }
+    if (!forgeExportMenuWrap?.contains(event.target)) setExportMenuOpen(false);
+    if (!forgeExport2DMenuWrap?.contains(event.target)) setExport2DMenuOpen(false);
   });
 
   forgeAutoRotateToggle?.addEventListener("click", () => {
     isAutoRotateEnabled = !isAutoRotateEnabled;
-    if (modelControls) modelControls.autoRotate = isAutoRotateEnabled;
+    if (modelControls) {
+      modelControls.autoRotate = currentMode === "single" && isAutoRotateEnabled;
+    }
     forgeAutoRotateToggle.classList.toggle("is-on", isAutoRotateEnabled);
     forgeAutoRotateToggle.setAttribute("aria-checked", String(isAutoRotateEnabled));
     if (forgeAutoRotateState) {
@@ -179,207 +384,777 @@ export function initForge() {
     }
   });
 
-  // Sửa lại logic chọn ảnh để phân biệt input nào đang được thao tác
   forgeInputFields.forEach((input) => {
     input.addEventListener("change", (event) => {
       const file = event.target.files?.[0];
       const card = event.target.closest(".forge-upload-card");
       const preview = card?.querySelector(".forge-preview");
       if (!file || !preview) return;
-      
-      // Phân loại lưu trữ file
+
+      const modeState = modeStates[currentMode];
       if (input.dataset.slot === "source") {
-        currentFileToUpload = file; 
+        if (modeState.sourcePreviewUrl) URL.revokeObjectURL(modeState.sourcePreviewUrl);
+        modeState.sourceFile = file;
+        modeState.sourcePreviewUrl = URL.createObjectURL(file);
+        currentFileToUpload = file;
+        clearModeResult(currentMode);
+        clearThreeJSPreview();
+        selectedMagicPoint = null;
+        selectedIsolatedImageUrl = null;
+        isMagicWandActive = false;
+        updateMagicWandState();
       } else if (input.dataset.slot === "pose") {
+        const singleState = modeStates.single;
+        if (singleState.posePreviewUrl) URL.revokeObjectURL(singleState.posePreviewUrl);
+        singleState.poseFile = file;
+        singleState.posePreviewUrl = URL.createObjectURL(file);
         currentPoseFile = file;
       }
-
-      const reader = new FileReader();
-      reader.onload = () => {
-        preview.src = reader.result;
-        card.classList.add("is-filled");
-      };
-      reader.readAsDataURL(file);
+      setUploadPreview(preview, card, input.dataset.slot === "pose"
+        ? modeStates.single.posePreviewUrl
+        : modeState.sourcePreviewUrl);
     });
   });
 
-  forgeSubmitBtn?.addEventListener("click", async () => {
+  forgeMagicBtn?.addEventListener("click", (event) => {
+    event.stopPropagation();
+    if (isMagicWandPending || isGenerationInProgress) return;
     if (!currentFileToUpload) {
-      alert("Vui lòng tải lên ảnh nguồn trước!");
+      showSourceRequiredDialog();
+      return;
+    }
+    if (magicWandCredits <= 0) {
+      alert("Bạn đã hết năng lượng Magic Wand! Vui lòng nâng cấp Pro.");
       return;
     }
 
+    if (isMagicWandActive) {
+      isMagicWandActive = false;
+      isMagicWandExpanded = false;
+      selectedMagicPoint = null;
+      selectedIsolatedImageUrl = null;
+    } else {
+      isMagicWandActive = true;
+      isMagicWandExpanded = true;
+      selectedMagicPoint = null;
+      selectedIsolatedImageUrl = null;
+    }
+    updateMagicWandState();
+  });
+
+  sourcePreviewImg?.addEventListener("click", (event) => {
+    if (!isMagicWandActive || isMagicWandPending || magicWandCredits <= 0 || !currentFileToUpload) return;
+    
+    event.preventDefault();
+    event.stopPropagation();
+
+    // 1. Kích thước thật của bức ảnh gốc (ví dụ: 1536x1024)
+    const imgNaturalWidth = sourcePreviewImg.naturalWidth;
+    const imgNaturalHeight = sourcePreviewImg.naturalHeight;
+
+    if (!imgNaturalWidth || !imgNaturalHeight) return;
+
+    // 2. Kích thước của THẺ IMG trên trình duyệt (đã bị ép bởi CSS)
+    const rect = sourcePreviewImg.getBoundingClientRect();
+    
+    // Lưu ý: rect.width và rect.height lúc này là kích thước của thẻ IMG,
+    // chứ KHÔNG phải phần diện tích hình ảnh đang hiển thị bên trong.
+    const cssWidth = rect.width;
+    const cssHeight = rect.height;
+
+    // Match the browser's object-fit sizing so Magic Wand coordinates remain accurate.
+    const scaleX = cssWidth / imgNaturalWidth;
+    const scaleY = cssHeight / imgNaturalHeight;
+    const objectFit = window.getComputedStyle(sourcePreviewImg).objectFit;
+    const actualScale = objectFit === "cover"
+      ? Math.max(scaleX, scaleY)
+      : Math.min(scaleX, scaleY);
+
+    // 4. Tính toán kích thước thật sự mà "điểm ảnh" chiếm dụng trên màn hình
+    const renderedWidth = imgNaturalWidth * actualScale;
+    const renderedHeight = imgNaturalHeight * actualScale;
+
+    // 5. Tính khoảng viền trống (letterbox) do phần ảnh bị thu nhỏ tạo ra bên trong thẻ img
+    const offsetX = (cssWidth - renderedWidth) / 2;
+    const offsetY = (cssHeight - renderedHeight) / 2;
+
+    // 6. Tính tọa độ chuột TƯƠNG ĐỐI so với góc trên cùng bên trái của thẻ img
+    const clickX = event.clientX - rect.left;
+    const clickY = event.clientY - rect.top;
+
+    // 7. Khử khoảng trống letterbox để lấy tọa độ click trên "vùng ảnh hiển thị"
+    const imageClickX = clickX - offsetX;
+    const imageClickY = clickY - offsetY;
+
+    // Nếu click rơi vào vùng viền trống (letterbox), hủy bỏ
+    if (imageClickX < 0 || imageClickX > renderedWidth || imageClickY < 0 || imageClickY > renderedHeight) {
+        console.warn("[Magic Wand] Click ra vùng letterbox (khoảng viền trống).");
+        return;
+    }
+
+    // 8. Chuyển đổi ngược lại sang hệ tọa độ của ảnh gốc
+    const finalX = Math.floor(imageClickX / actualScale);
+    const finalY = Math.floor(imageClickY / actualScale);
+
+    console.log(`[Frontend] Mapped Exact Coordinate: X=${finalX}, Y=${finalY} on Original Image`);
+
+    selectedMagicPoint = { x: finalX, y: finalY };
+    isMagicWandActive = false;
+    isMagicWandPending = true;
+    setGenerationBusy(true, forgeMagicBtn);
+    
+    // Gửi tọa độ chuẩn xác lên SAM 3
+    handleMagicWandSelection(finalX, finalY);
+  });
+
+  const handleMagicWandSelection = async (x, y) => {
+    const sourceFile = currentFileToUpload;
     try {
-      forgeSubmitBtn.disabled = true;
-      forgeOutputStage?.classList.add("is-ready");
-      forgeSubmitBtn.textContent = "Đang phối hợp AI...";
-      currentModel = null;
-      currentRenderer = null;
-      modelControls = null;
-
       const formData = new FormData();
-      formData.append("mode", currentMode);
-      formData.append("source", currentFileToUpload);
+      formData.append("source", sourceFile);
+      formData.append("point_x", String(x));
+      formData.append("point_y", String(y));
+      formData.append("selection_prompt", forgeSelectionPrompt?.value.trim() ?? "");
 
-      if (currentPoseFile) {
-        formData.append("pose", currentPoseFile);
+      const response = await fetch("http://localhost:3000/api/magic-wand", {
+        method: "POST",
+        body: formData,
+      });
+      const result = await response.json();
+      if (!response.ok || result.error || result.code !== 0) {
+        throw new Error(result.error || "SAM 3 không tách được vật thể");
       }
 
-      const taskRes = await fetch("/api/create-task", {
+      if (currentMode !== "multiple" || modeStates.multiple.sourceFile !== sourceFile) return;
+      selectedIsolatedImageUrl = result.data?.image_url;
+      if (!selectedIsolatedImageUrl) throw new Error("SAM 3 không trả về ảnh vật thể");
+      console.log("[Magic Wand] SAM 3 selection ready", { x, y, image: selectedIsolatedImageUrl });
+    } catch (error) {
+      selectedMagicPoint = null;
+      selectedIsolatedImageUrl = null;
+      alert(`Lỗi chọn vật bằng SAM 3: ${error.message}`);
+    } finally {
+      isMagicWandPending = false;
+      setGenerationBusy(false);
+    }
+  };
+
+  const handleMagicWandGeneration = async (x, y) => {
+    let progressEstimator = null;
+    const generationMode = currentMode;
+    const sourceFile = modeStates.multiple.sourceFile;
+    const finishMagicWand = (label = "Magic Wand") => {
+      progressEstimator?.reset();
+      isMagicWandPending = false;
+      setGenerationBusy(false);
+      if (forgeMagicCreationBtnLabel) forgeMagicCreationBtnLabel.textContent = "3D Creation";
+    };
+
+    try {
+      progressEstimator = createProgressEstimator(forgeMagicCreationBtn, "Generating 3D");
+      const taskRes = await fetch("http://localhost:3000/api/magic-wand/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image_url: selectedIsolatedImageUrl }),
+      });
+      const taskData = await taskRes.json();
+      if (!taskRes.ok || taskData.error || taskData.code !== 0) {
+        throw new Error(taskData.error || "Tạo task Magic Wand thất bại");
+      }
+
+      const taskId = taskData.data?.task_id;
+      if (!taskId) throw new Error("Server không trả về task ID");
+
+      let isCheckingStatus = false;
+      const checkInterval = window.setInterval(async () => {
+        if (isCheckingStatus) return;
+        isCheckingStatus = true;
+        try {
+          const statusRes = await fetch(`http://localhost:3000/api/task-status/${taskId}?mode=single`);
+          const statusData = await statusRes.json();
+          if (!statusRes.ok || statusData.error) {
+            throw new Error(statusData.error || "Không lấy được trạng thái task");
+          }
+
+          const taskStatus = statusData.data?.status;
+
+          if (taskStatus === "success") {
+            window.clearInterval(checkInterval);
+            progressEstimator?.complete();
+            const modelUrl = statusData.data?.output?.model;
+            if (!modelUrl) throw new Error("Không lấy được file 3D");
+            if (modeStates.multiple.sourceFile !== sourceFile) {
+              window.clearInterval(checkInterval);
+              window.setTimeout(finishMagicWand, 700);
+              return;
+            }
+            modeStates.multiple.magicModelUrls.push(modelUrl);
+            if (currentMode === generationMode) {
+              renderThreeJSModel(modelUrl, "single", true);
+            }
+            selectedMagicPoint = null;
+            selectedIsolatedImageUrl = null;
+            window.setTimeout(finishMagicWand, 700);
+          } else if (taskStatus === "failed" || taskStatus === "cancelled") {
+            throw new Error("AI xử lý thất bại");
+          }
+        } catch (error) {
+          window.clearInterval(checkInterval);
+          alert(error.message);
+          finishMagicWand();
+        } finally {
+          isCheckingStatus = false;
+        }
+      }, 3000);
+    } catch (error) {
+      alert("Lỗi Magic Wand: " + error.message);
+      finishMagicWand();
+    }
+  };
+
+  forgeMagicCreationBtn?.addEventListener("click", () => {
+    if (!selectedMagicPoint || !selectedIsolatedImageUrl || isMagicWandPending || isGenerationInProgress) return;
+    if (magicWandCredits <= 0) {
+      alert("You have run out of Magic Wand energy! Please upgrade to Pro.");
+      return;
+    }
+
+    magicWandCredits--;
+    updateMagicWandCredits();
+    isMagicWandPending = true;
+    setGenerationBusy(true, forgeMagicCreationBtn);
+    if (forgeMagicCreationBtnLabel) forgeMagicCreationBtnLabel.textContent = "Generating 3D...";
+    handleMagicWandGeneration(selectedMagicPoint.x, selectedMagicPoint.y);
+  });
+
+  // --- HÀM CHUNG XỬ LÝ GỬI REQUEST LÊN SERVER (Dùng chung cho cả Single và Parallax) ---
+  const handleGeneration = async (activeButton, endpointMode) => {
+    if (!currentFileToUpload) {
+      showSourceRequiredDialog();
+      return;
+    }
+    if (isGenerationInProgress || isMagicWandPending) return;
+    let progressEstimator = null;
+    const defaultLabel = endpointMode === "single" ? "Generate 3D" : "Parallax Space";
+    const buttonLabel = activeButton.querySelector("span");
+    const sourceFile = currentFileToUpload;
+    const poseFile = endpointMode === "single" ? currentPoseFile : null;
+    try {
+      setGenerationBusy(true, activeButton);
+      forgeOutputStage?.classList.add("is-ready");
+      progressEstimator = createProgressEstimator(activeButton, "Generating 3D");
+
+      const formData = new FormData();
+      formData.append("mode", endpointMode);
+      formData.append("source", sourceFile);
+      if (poseFile) {
+        formData.append("pose", poseFile);
+      }
+
+      const taskRes = await fetch("http://localhost:3000/api/create-task", {
         method: "POST",
         body: formData
       });
-
       const taskData = await taskRes.json();
-
       if (!taskRes.ok || taskData.error || taskData.code !== 0) {
         throw new Error(taskData.error || "Tạo task thất bại từ server");
       }
 
       const taskId = taskData.data.task_id;
-
       const checkInterval = setInterval(async () => {
         try {
-          const statusRes = await fetch(`/api/task-status/${taskId}`);
+          const statusRes = await fetch(`http://localhost:3000/api/task-status/${taskId}?mode=${endpointMode}`);
           const statusData = await statusRes.json();
-
           if (!statusRes.ok || statusData.error) {
             clearInterval(checkInterval);
             throw new Error(statusData.error || "Không lấy được trạng thái task");
           }
 
           const status = statusData.data.status;
-          const progress = statusData.data.progress;
-
-          forgeSubmitBtn.textContent = `Đang tạo hình: ${progress}%`;
 
           if (status === "success") {
             clearInterval(checkInterval);
-            forgeSubmitBtn.textContent = "Hoàn tất!";
-            forgeSubmitBtn.disabled = false;
-
+            progressEstimator?.complete();
+            
             const outputData = statusData.data.output || {};
-            let modelUrl = outputData.model?.url || outputData.model || outputData.pbr || outputData.base_model;
-
-            if (!modelUrl || typeof modelUrl !== 'string') {
-              JSON.stringify(outputData, (key, value) => {
-                if (typeof value === 'string' && (value.endsWith('.glb') || value.includes('.glb'))) {
-                  modelUrl = value;
+            if (endpointMode === "single") {
+                let modelUrl = outputData.model;
+                if (!modelUrl) {
+                    alert("Lỗi: Không lấy được file 3D.");
+                } else if (modeStates.single.sourceFile === sourceFile &&
+                  modeStates.single.poseFile === poseFile) {
+                    modeStates.single.modelUrl = modelUrl;
+                    if (currentMode === endpointMode) {
+                      clearThreeJSPreview();
+                      forgeOutputStage?.classList.add("is-ready");
+                      renderThreeJSModel(modelUrl, "single");
+                    }
                 }
-                return value;
-              });
-            }
-
-            if (modelUrl) {
-              renderThreeJSModel(modelUrl);
             } else {
-              alert("Lỗi: Không lấy được file 3D từ hệ thống.");
+                // Nhận Depth Map URL cho chế độ Parallax
+                let depthMapUrl = outputData.depth_map;
+                if (!depthMapUrl) {
+                    alert("Lỗi: Không lấy được Depth Map.");
+                } else if (modeStates.multiple.sourceFile === sourceFile) {
+                    modeStates.multiple.depthMapUrl = depthMapUrl;
+                    modeStates.multiple.magicModelUrls = [];
+                    if (currentMode === endpointMode) {
+                      clearThreeJSPreview();
+                      forgeOutputStage?.classList.add("is-ready");
+                      renderThreeJSModel(depthMapUrl, "multiple");
+                    }
+                }
             }
+            window.setTimeout(() => {
+              progressEstimator?.reset();
+              setGenerationBusy(false);
+              if (buttonLabel) buttonLabel.textContent = defaultLabel;
+            }, 700);
           } else if (status === "failed" || status === "cancelled") {
             clearInterval(checkInterval);
-            throw new Error("Tripo3D xử lý mô hình bị lỗi");
+            throw new Error("AI xử lý thất bại");
           }
         } catch (error) {
           clearInterval(checkInterval);
           console.error(error);
           alert("Lỗi: " + error.message);
-          forgeSubmitBtn.disabled = false;
-          forgeSubmitBtn.textContent = "GENERATE 3D";
+          progressEstimator?.reset();
+          setGenerationBusy(false);
+          if (buttonLabel) buttonLabel.textContent = defaultLabel;
         }
       }, 3000);
     } catch (error) {
       console.error(error);
       alert("Lỗi: " + error.message);
-      forgeSubmitBtn.disabled = false;
-      forgeSubmitBtn.textContent = "GENERATE 3D";
+      progressEstimator?.reset();
+      setGenerationBusy(false);
+      if (buttonLabel) buttonLabel.textContent = defaultLabel;
     }
-  });
+  };
 
-  // 4. Môi trường Three.js Render Mô Hình
-  function renderThreeJSModel(glbUrl) {
-    if (!forgeViewer) return;
-    isActualModelReady = true;
-    forgeViewer.innerHTML = ''; 
-    forgeViewer.style.cursor = 'grab';
+  // Gắn sự kiện cho nút Single Mode
+  forgeSubmitBtn?.addEventListener("click", () => handleGeneration(forgeSubmitBtn, "single"));
+  
+  // Gắn sự kiện cho nút Parallax Space (Multiple Mode)
+  forgeParallaxBtn?.addEventListener("click", () => handleGeneration(forgeParallaxBtn, "multiple"));
 
-    const scene = new THREE.Scene();
-    
-    const camera = new THREE.PerspectiveCamera(45, forgeViewer.clientWidth / forgeViewer.clientHeight, 0.1, 100);
-    camera.position.set(0, 1.5, 4);
+  // Thêm thao tác click chọn model trong preview
+  function selectMagicObjectFromPointer(event) {
+    if (
+      !activeRenderer ||
+      !activeCamera ||
+      !magicObjectsGroup ||
+      !magicTransformControls
+    ) {
+      return;
+    }
 
-    const renderer = new THREE.WebGLRenderer({
-      alpha: true,
-      antialias: true,
-      preserveDrawingBuffer: true,
-    });
-    currentRenderer = renderer;
-    renderer.setSize(forgeViewer.clientWidth, forgeViewer.clientHeight);
-    renderer.setPixelRatio(window.devicePixelRatio);
-    renderer.outputColorSpace = THREE.SRGBColorSpace;
-    forgeViewer.appendChild(renderer.domElement);
+    const canvas = activeRenderer.domElement;
+    const rect = canvas.getBoundingClientRect();
 
-    const ambientLight = new THREE.AmbientLight(0xffffff, 2.0);
-    scene.add(ambientLight);
-    const dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
-    dirLight.position.set(5, 5, 5);
-    scene.add(dirLight);
+    magicPointer.x =
+      ((event.clientX - rect.left) / rect.width) * 2 - 1;
 
+    magicPointer.y =
+      -((event.clientY - rect.top) / rect.height) * 2 + 1;
 
-    const controls = new OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
-    controls.dampingFactor = 0.05;
-    controls.autoRotate = isAutoRotateEnabled;
-    controls.autoRotateSpeed = 2.0;
-    modelControls = controls;
+    magicRaycaster.setFromCamera(magicPointer, activeCamera);
 
-    const loader = new GLTFLoader();
-    loader.load(
-      glbUrl,
-      (gltf) => {
-        const model = gltf.scene;
-
-        model.traverse((child) => {
-          if (child.isMesh) {
-            // Tính toán lại bề mặt để xóa các góc cạnh thô ráp
-            child.geometry.computeVertexNormals();
-            if (child.material) {
-              child.material.flatShading = false; // Tắt kiểu render khối vuông
-              child.material.needsUpdate = true;
-            }
-          }
-        });
-        
-        const box = new THREE.Box3().setFromObject(model);
-        const size = box.getSize(new THREE.Vector3());
-        const center = box.getCenter(new THREE.Vector3());
-        
-        const maxAxis = Math.max(size.x, size.y, size.z);
-        const previewScale = 2.0 / maxAxis;
-        const previewRoot = new THREE.Group();
-        previewRoot.scale.setScalar(previewScale);
-        previewRoot.position.copy(center).multiplyScalar(-previewScale);
-        previewRoot.add(model);
-
-        currentModel = model;
-        scene.add(previewRoot);
-        if (forgeExportStatus) forgeExportStatus.hidden = true;
-      },
-      undefined,
-      (error) => console.error("Lỗi tải GLB:", error)
+    const hits = magicRaycaster.intersectObjects(
+      magicObjectsGroup.children,
+      true
     );
 
-    const animate = () => {
-      requestAnimationFrame(animate);
-      controls.update();
-      renderer.render(scene, camera);
-    };
-    animate();
+    if (hits.length === 0) {
+      selectedMagicObject = null;
+      magicTransformControls.detach();
+      return;
+    }
 
-    window.addEventListener('resize', () => {
-      camera.aspect = forgeViewer.clientWidth / forgeViewer.clientHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(forgeViewer.clientWidth, forgeViewer.clientHeight);
+    // Đi ngược từ mesh được click về root của vật thể
+    let root = hits[0].object;
+
+    while (
+      root.parent &&
+      root.parent !== magicObjectsGroup
+    ) {
+      root = root.parent;
+    }
+
+    if (root.parent !== magicObjectsGroup) return;
+
+    selectedMagicObject = root;
+    magicTransformControls.attach(selectedMagicObject);
+    magicTransformControls.setMode("translate");
+  }
+  // Thêm code phím tắt
+  function handleMagicTransformShortcut(event) {
+    if (event.repeat) return;
+    // Không xử lý phím khi đang nhập liệu
+    const target = event.target;
+
+    if (
+      target instanceof HTMLElement &&
+      (
+        target.isContentEditable ||
+        ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName)
+      )
+    ) {
+      return;
+    }
+
+    // Không xử lý khi đang giữ Ctrl, Alt hoặc Meta
+    if (event.ctrlKey || event.altKey || event.metaKey) {
+      return;
+    }
+
+    // Chỉ hoạt động khi đã chọn vật thể Magic Wand
+    if (!selectedMagicObject || !magicTransformControls) {
+      return;
+    }
+
+    switch (event.key.toLowerCase()) {
+      case "w":
+        magicTransformControls.setMode("translate");
+        break;
+
+      case "e":
+        magicTransformControls.setMode("rotate");
+        break;
+
+      case "r":
+        magicTransformControls.setMode("scale");
+        break;
+
+      default:
+        return;
+    }
+
+    event.preventDefault();
+  }
+  
+  window.addEventListener(
+    "keydown",
+    handleMagicTransformShortcut
+  );
+
+  const disposeSceneResources = (root) => {
+    root?.traverse((object) => {
+      object.geometry?.dispose();
+      const materials = Array.isArray(object.material) ? object.material : [object.material];
+      materials.forEach((material) => {
+        if (!material) return;
+        Object.values(material).forEach((value) => {
+          if (value?.isTexture) value.dispose();
+        });
+        material.dispose();
+      });
     });
+  };
+
+  function clearThreeJSPreview() {
+    previewVersion++;
+    if (animationFrameId !== null) window.cancelAnimationFrame(animationFrameId);
+    if (resizeHandler) window.removeEventListener("resize", resizeHandler);
+    modelControls?.dispose();
+    magicTransformControls?.detach();
+    magicTransformControls?.dispose();
+    disposeSceneResources(activeScene);
+    activeRenderer?.dispose();
+
+    animationFrameId = null;
+    resizeHandler = null;
+    currentModel = null;
+    currentRenderer = null;
+    modelControls = null;
+    activeScene = null;
+    activeCamera = null;
+    activeRenderer = null;
+    magicObjectsGroup = null;
+    magicTransformControls = null;
+    selectedMagicObject = null;
+    isActualModelReady = false;
+
+    if (forgeViewer && placeholderModel) {
+      forgeViewer.replaceChildren(placeholderModel);
+      forgeViewer.style.cursor = "grab";
+    }
+    forgeOutputStage?.classList.remove("is-ready");
+    if (forgeExportStatus) forgeExportStatus.hidden = true;
+    if (forgeExport2DStatus) forgeExport2DStatus.hidden = true;
+  }
+
+  function restoreModePreview(mode) {
+    const renderVersion = previewVersion;
+    if (mode === "single") {
+      const modelUrl = modeStates.single.modelUrl;
+      if (!modelUrl) return;
+      forgeOutputStage?.classList.add("is-ready");
+      renderThreeJSModel(modelUrl, "single", false, renderVersion);
+      return;
+    }
+
+    const { depthMapUrl, magicModelUrls } = modeStates.multiple;
+    if (!depthMapUrl && magicModelUrls.length === 0) return;
+    forgeOutputStage?.classList.add("is-ready");
+    if (depthMapUrl) {
+      renderThreeJSModel(depthMapUrl, "multiple", false, renderVersion);
+      magicModelUrls.forEach((modelUrl) => {
+        renderThreeJSModel(modelUrl, "single", true, renderVersion);
+      });
+      return;
+    }
+    magicModelUrls.forEach((modelUrl) => {
+      renderThreeJSModel(modelUrl, "single", true, renderVersion);
+    });
+  }
+
+  // --- MÔI TRƯỜNG THREE.JS (Hỗ trợ cả GLB Model và 2.5D Parallax Depth-to-Mesh) ---
+  function renderThreeJSModel(assetUrl, mode, isAddingToScene = false, renderVersion = previewVersion) {
+    if (!forgeViewer || renderVersion !== previewVersion) return;
+    isActualModelReady = true;
+    forgeViewer.style.cursor = 'grab';
+    const shouldCreateScene = !isAddingToScene || !activeScene || !activeCamera || !activeRenderer;
+
+    if (shouldCreateScene) {
+      if (animationFrameId !== null) window.cancelAnimationFrame(animationFrameId);
+      if (resizeHandler) window.removeEventListener("resize", resizeHandler);
+      modelControls?.dispose();
+
+      magicTransformControls?.detach();
+      magicTransformControls?.dispose();
+      magicTransformControls = null;
+      selectedMagicObject = null;
+      magicObjectsGroup = null;
+
+      activeRenderer?.dispose();
+      forgeViewer.innerHTML = "";
+      currentModel = null;
+      activeScene = new THREE.Scene();
+      activeCamera = new THREE.PerspectiveCamera(45, forgeViewer.clientWidth / forgeViewer.clientHeight, 0.1, 100);
+      magicObjectsGroup = new THREE.Group();
+      magicObjectsGroup.name = "MagicWandObjects";
+      activeScene.add(magicObjectsGroup);
+      activeCamera.position.set(0, 0, 4);
+      activeRenderer = new THREE.WebGLRenderer({
+        alpha: true,
+        antialias: true,
+        preserveDrawingBuffer: true,
+      });
+      currentRenderer = activeRenderer;
+      activeRenderer.setSize(forgeViewer.clientWidth, forgeViewer.clientHeight);
+      activeRenderer.setPixelRatio(window.devicePixelRatio);
+      activeRenderer.outputColorSpace = THREE.SRGBColorSpace;
+      forgeViewer.appendChild(activeRenderer.domElement);
+
+      activeRenderer.domElement.addEventListener(
+        "pointerdown",
+        selectMagicObjectFromPointer
+      );
+
+      activeScene.add(new THREE.AmbientLight(0xffffff, 2.0));
+      const dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
+      dirLight.position.set(5, 5, 5);
+      activeScene.add(dirLight);
+
+      const controls = new OrbitControls(activeCamera, activeRenderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.05;
+      controls.autoRotate = currentMode === "single" && isAutoRotateEnabled;
+      controls.autoRotateSpeed = 1.5;
+
+      if (mode === "multiple") {
+        controls.minAzimuthAngle = -Math.PI / 4;
+        controls.maxAzimuthAngle = Math.PI / 4;
+        controls.minPolarAngle = Math.PI / 3;
+        controls.maxPolarAngle = Math.PI / 1.8;
+      }
+      modelControls = controls;
+
+      // Magic Wand: cho phép chọn và biến đổi từng vật thể
+      if (!magicTransformControls) {
+        magicTransformControls = new TransformControls(
+          activeCamera,
+          activeRenderer.domElement
+        );
+
+        activeScene.add(magicTransformControls.getHelper());
+
+        magicTransformControls.addEventListener(
+          "dragging-changed",
+          (event) => {
+            if (modelControls) {
+              modelControls.enabled = !event.value;
+            }
+          }
+        );
+      }
+
+      const animate = () => {
+        animationFrameId = window.requestAnimationFrame(animate);
+        if (modelControls) modelControls.update();
+        if (activeRenderer && activeScene && activeCamera) {
+          activeRenderer.render(activeScene, activeCamera);
+        }
+      };
+      animate();
+
+      resizeHandler = () => {
+        if (!activeCamera || !activeRenderer) return;
+        activeCamera.aspect = forgeViewer.clientWidth / forgeViewer.clientHeight;
+        activeCamera.updateProjectionMatrix();
+        activeRenderer.setSize(forgeViewer.clientWidth, forgeViewer.clientHeight);
+      };
+      window.addEventListener("resize", resizeHandler);
+    }
+
+    if (mode === "multiple" && !isAddingToScene) {
+        if (forgeExportStatus) {
+        forgeExportStatus.textContent = "Parallax 3D Point Cloud Active.";
+            forgeExportStatus.hidden = false;
+        }
+
+        const originalImageUrl = URL.createObjectURL(currentFileToUpload);
+        const depthMapUrl = assetUrl;
+
+        const textureLoader = new THREE.TextureLoader();
+        Promise.all([
+            new Promise(res => textureLoader.load(originalImageUrl, res)),
+            new Promise(res => textureLoader.load(depthMapUrl, res))
+        ]).then(([colorMap, depthMap]) => {
+            if (renderVersion !== previewVersion) {
+              colorMap.dispose();
+              depthMap.dispose();
+              URL.revokeObjectURL(originalImageUrl);
+              return;
+            }
+            URL.revokeObjectURL(originalImageUrl);
+            colorMap.colorSpace = THREE.SRGBColorSpace;
+            const imgWidth = colorMap.image.width;
+            const imgHeight = colorMap.image.height;
+
+            const canvas = document.createElement("canvas");
+            canvas.width = imgWidth;
+            canvas.height = imgHeight;
+            const context = canvas.getContext("2d");
+
+            context.drawImage(colorMap.image, 0, 0);
+            const colorData = context.getImageData(0, 0, imgWidth, imgHeight).data;
+
+            context.clearRect(0, 0, imgWidth, imgHeight);
+            context.drawImage(depthMap.image, 0, 0);
+            const depthData = context.getImageData(0, 0, imgWidth, imgHeight).data;
+
+            const geometry = new THREE.BufferGeometry();
+            const positions = [];
+            const colors = [];
+            const step = 2;
+
+            for (let y = 0; y < imgHeight; y += step) {
+              for (let x = 0; x < imgWidth; x += step) {
+                const pixelIndex = (y * imgWidth + x) * 4;
+                const depthValue = depthData[pixelIndex] / 255.0;
+
+                const vx = (x - imgWidth / 2) / 300;
+                const vy = -(y - imgHeight / 2) / 300;
+
+                // Giảm độ biến dạng chiều sâu
+                const vz = (depthValue - 0.5) * 0.5;
+
+                positions.push(vx, vy, vz);
+                colors.push(
+                  colorData[pixelIndex] / 255,
+                  colorData[pixelIndex + 1] / 255,
+                  colorData[pixelIndex + 2] / 255
+                );
+              }
+            }
+
+            geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+            geometry.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
+
+            const material = new THREE.PointsMaterial({
+              size: 0.015,
+              vertexColors: true,
+              sizeAttenuation: true
+            });
+
+            const pointCloud = new THREE.Points(geometry, material);
+            pointCloud.frustumCulled = false;
+            currentModel = pointCloud;
+            activeScene.add(pointCloud);
+
+            activeCamera.position.set(0, 0, 3.0);
+            activeCamera.lookAt(0, 0, 0);
+        });
+
+    } else {
+        // --- LUỒNG RENDER 3D MODEL TIÊU CHUẨN (GLB) ---
+        const loader = new GLTFLoader();
+        loader.load(
+            assetUrl,
+            (gltf) => {
+                if (renderVersion !== previewVersion) {
+                  disposeSceneResources(gltf.scene);
+                  return;
+                }
+                const model = gltf.scene;
+                model.traverse((child) => {
+                  if (child.isMesh) {
+                    child.geometry.computeVertexNormals();
+                    if (child.material) {
+                      child.material.flatShading = false;
+                      child.material.needsUpdate = true;
+                    }
+                  }
+                });
+                
+                const box = new THREE.Box3().setFromObject(model);
+                const size = box.getSize(new THREE.Vector3());
+                const center = box.getCenter(new THREE.Vector3());
+                
+                const maxAxis = Math.max(size.x, size.y, size.z);
+                const previewScale = 2.0 / maxAxis;
+                const previewRoot = new THREE.Group();
+
+                previewRoot.scale.setScalar(previewScale);
+                previewRoot.position.copy(center).multiplyScalar(-previewScale);
+                previewRoot.add(model);
+
+                if (isAddingToScene) {
+                  // Thêm vào bộ sưu tập Magic Wand hiện tại
+                  if (!magicObjectsGroup) {
+                    magicObjectsGroup = new THREE.Group();
+                    magicObjectsGroup.name = "MagicWandObjects";
+                    activeScene.add(magicObjectsGroup);
+                  }
+
+                  // Đặt các model mới cạnh nhau để tránh bị chồng lên nhau
+                  const objectIndex = magicObjectsGroup.children.length;
+                  const spacing = 2.2;
+
+                  previewRoot.position.x += objectIndex * spacing;
+
+                  magicObjectsGroup.add(previewRoot);
+
+                  // Export toàn bộ nhóm, không chỉ model vừa tạo
+                  currentModel = magicObjectsGroup;
+                } else {
+                  // Single Object thông thường: giữ hành vi cũ
+                  currentModel = previewRoot;
+                  activeScene.add(previewRoot);
+                }
+
+                if (forgeExportStatus) {
+                  forgeExportStatus.hidden = true;
+                }
+                if (forgeExportStatus) forgeExportStatus.hidden = true;
+            },
+            undefined,
+            (error) => console.error("Lỗi tải GLB:", error)
+        );
+    }
+
   }
 
   const canvasToBlob = (canvas) =>
