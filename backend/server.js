@@ -318,18 +318,16 @@ app.post('/api/magic-wand', upload.single('source'), async (req, res) => {
     // Gọi SAM 3 để bóc tách vật thể ngay tại điểm user vừa click
     const samInput = {
       image_url: sourceBase64,
+      prompt: selectionPrompt || "",
+      point_prompts: [
+          { x, y, label: 1 }
+      ],
       apply_mask: true,
       output_format: "png"
     };
 
-    // Chỉ dùng điểm click NẾU người dùng không nhập đoạn text miêu tả
-    if (selectionPrompt?.trim()) {
-      samInput.prompt = selectionPrompt.trim();
-      console.log(`[Magic Wand] Ưu tiên Text Prompt: "${selectionPrompt}"`);
-    } else {
-      samInput.point_prompts = [{ x, y, label: 1 }];
-      console.log(`[Magic Wand] Dùng Point Prompt tại tọa độ X:${x}, Y:${y}`);
-    }
+    // Luôn truyền prompt để tránh API tự dùng mặc định "wheel"
+    samInput.prompt = selectionPrompt;
 
     // Gọi API bằng biến samInput đã được xử lý
     const samResult = await fal.subscribe("fal-ai/sam-3/image", {
