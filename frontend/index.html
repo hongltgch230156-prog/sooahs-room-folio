@@ -245,8 +245,8 @@
               <div class="forge-header-col forge-header-pose">
                 <span class="forge-section-label">Pose image</span>
                 <span class="forge-card-tag">optional</span>
-              </div>
-            </div>
+               </div>
+             </div>
 
             <div class="forge-upload-grid">
               <label class="forge-upload-card required">
@@ -289,7 +289,7 @@
               <div class="forge-multi-actions" id="btn-multi-gen">
                 <button type="button" class="forge-submit-btn forge-btn-parallax" id="btn-parallax">
                   <svg class="forge-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
-                  <span>Parallax Space</span>
+                  <span>GENERATE SCENE</span>
                 </button>
                 <button type="button" class="forge-submit-btn forge-btn-magic" id="btn-magic">
                   <svg class="forge-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72Z"></path><path d="m14 7 3 3"></path><path d="M5 6v4"></path><path d="M19 14v4"></path><path d="M10 2v2"></path><path d="M7 8H3"></path><path d="M21 16h-4"></path><path d="M11 3H9"></path></svg>
@@ -330,7 +330,7 @@
             </div>
 
             <div class="forge-magic-credits" aria-live="polite" aria-hidden="true">
-              <span class="forge-magic-credits-label">2/2 lượt còn lại</span>
+              <span class="forge-magic-credits-label">2/2 generations left</span>
               <div
                 class="forge-magic-credits-track"
                 role="progressbar"
@@ -510,14 +510,203 @@
       </div>
     </div>
 
-    <div class="contact modal">
+    <!-- HAND LAB MODAL -->
+    <div class="contact modal hand-lab-modal">
       <div class="forge-modal">
+        <!-- Nút đóng cửa sổ -->
         <button class="modal-exit-button">
           <svg width="98" height="96" viewBox="0 0 98 96" class="exit-button-svg" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
             <rect width="115.92" height="17.889" rx="8.94448" transform="matrix(-0.696845 0.717222 0.717222 0.696845 83.1709 0)" fill="currentColor" />
             <rect width="115.92" height="17.889" rx="8.94448" transform="matrix(0.73406 0.679084 0.679084 -0.73406 0 13.1318)" fill="currentColor" />
           </svg>
         </button>
+
+        <div class="forge-header hl-header">
+          <div class="forge-title hl-title">~ HAND LAB ~</div>
+        </div>
+
+        <div class="hl-main-container">
+          <!-- Navigation Tabs -->
+          <div class="hl-tabs-wrapper">
+            <div class="hl-tabs">
+              <button class="hl-tab-btn is-active" data-tab="meme-search">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="hl-tab-icon"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                MEME SEARCH
+              </button>
+              <button class="hl-tab-btn" data-tab="snap-solve">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="hl-tab-icon"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+                SNAP & SOLVE
+              </button>
+            </div>
+          </div>
+
+          <!-- Main Content Area -->
+          <div class="hl-content-area">
+            
+            <!-- Tab 1: Meme Search -->
+            <div class="hl-tab-content is-active" id="tab-meme-search">
+              <div class="hl-camera-viewport hl-meme-viewport">
+                <!-- Khu vực hiển thị luồng Camera -->
+                <video
+                  id="hl-webcam-meme"
+                  class="hl-video-feed"
+                  autoplay
+                  playsinline
+                  muted
+                ></video>
+
+                <img
+                  id="hl-meme-snapshot"
+                  class="hl-meme-snapshot"
+                  alt="Captured pose"
+                />
+
+                <div class="hl-capture-flash"></div>
+                
+                <!-- Overlay Face Scan (Trạng thái mặc định) -->
+                <div class="hl-scan-overlay">
+                  <!-- Countdown 3 → 2 → 1 -->
+                  <div class="hl-countdown-number"></div>
+
+                  <div class="hl-scan-indicator">
+                      <svg
+                          viewBox="0 0 24 24"
+                          class="hl-face-icon"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                      >
+                          <path d="M3 7V5a2 2 0 0 1 2-2h2"></path>
+                          <path d="M17 3h2a2 2 0 0 1 2 2v2"></path>
+                          <path d="M21 17v2a2 2 0 0 1-2 2h-2"></path>
+                          <path d="M7 21H5a2 2 0 0 1-2-2v-2"></path>
+                          <rect x="7" y="7" width="10" height="10" rx="2" ry="2"></rect>
+                          <path d="M9 10h.01"></path>
+                          <path d="M15 10h.01"></path>
+                          <path d="M10 14a3 3 0 0 0 4 0"></path>
+                      </svg>
+
+                      <div class="hl-scan-text">
+                          SCANNING YOUR FACE + HAND...
+                      </div>
+                  </div>
+
+                  <div class="hl-progress-bar">
+                      <div
+                          class="hl-progress-fill"
+                          style="width: 20%;"
+                      ></div>
+                  </div>
+
+              </div>
+             </div>
+              <div class="hl-helper-text">Show a gesture and make a face.</div>
+
+              <!-- Thanh trạng thái và Kết quả (Sẽ hiển thị sau khi scan xong) -->
+              <div class="hl-results-panel">
+                <div class="hl-results-header">
+                  <div class="hl-results-heading">
+                    <span class="hl-section-label">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                      YOUR VIBE
+                    </span>
+                    <div class="hl-result-tabs" role="tablist" aria-label="Meme result type">
+                      <button
+                        class="hl-result-tab is-active"
+                        id="hl-gifs-tab"
+                        type="button"
+                        role="tab"
+                        aria-selected="true"
+                        aria-controls="hl-gifs-panel"
+                        data-result-tab="gifs"
+                      >GIFs</button>
+                      <button
+                        class="hl-result-tab"
+                        id="hl-memes-tab"
+                        type="button"
+                        role="tab"
+                        aria-selected="false"
+                        aria-controls="hl-memes-panel"
+                        data-result-tab="memes"
+                      >Meme</button>
+                    </div>
+                  </div>
+                  <button class="hl-action-btn hl-rescan-btn">
+                      <svg
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                      >
+                          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                          <circle cx="12" cy="13" r="4"></circle>
+                      </svg>
+
+                      RE-SCAN
+                  </button>
+                </div>
+                
+                <div
+                  class="hl-results-content"
+                  id="hl-gifs-panel"
+                  role="tabpanel"
+                  aria-labelledby="hl-gifs-tab"
+                >
+                  <div class="hl-meme-grid">
+                    <!-- JS sẽ đổ GIF vào đây -->
+                  </div>
+                  <div class="hl-giphy-attribution">
+                    Powered By GIPHY
+                  </div>
+                </div>
+
+                <div
+                  class="hl-results-content"
+                  id="hl-memes-panel"
+                  role="tabpanel"
+                  aria-labelledby="hl-memes-tab"
+                  hidden
+                >
+                  <div class="hl-meme-grid">
+                    <!-- JS sẽ đổ Meme tĩnh từ GIPHY vào đây -->
+                  </div>
+                  <div class="hl-giphy-attribution">
+                    Powered By GIPHY
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Tab 2: Snap & Solve -->
+            <div class="hl-tab-content" id="tab-snap-solve">
+              <!-- Giao diện Camera -->
+              <div class="hl-camera-viewport hl-snap-viewport" id="hl-snap-view">
+                 <video id="hl-webcam-puzzle" class="hl-video-feed" autoplay playsinline muted></video>
+                 
+                 <!-- Các góc viền -->
+                 <div class="hl-corner hl-top-left"></div>
+                 <div class="hl-corner hl-top-right"></div>
+                 <div class="hl-corner hl-bottom-left"></div>
+                 <div class="hl-corner hl-bottom-right"></div>
+
+                 <div class="hl-gesture-trigger">
+                    <span class="hl-trigger-emoji">👌</span>
+                    <div class="hl-trigger-text">RAISE <span class="hl-trigger-icon-small">👌</span> OK TO CAPTURE</div>
+                    <div class="hl-progress-bar hl-capture-progress">
+                      <div class="hl-progress-fill" style="width: 0%;"></div>
+                    </div>
+                 </div>
+              </div>
+              <div class="hl-helper-text">Press & hold the viewfinder = holding up the 👌 OK gesture. No buttons, no mouse.</div>
+
+              <!-- Giao diện chọn Level (Hiển thị sau khi chụp) -->
+              <div class="hl-puzzle-levels" id="hl-level-view" style="display: none;">
+                <!-- ... Nội dung chọn level (giữ nguyên cấu trúc cũ nếu muốn) ... -->
+              </div>
+            </div>
+
+          </div>
+        </div>
       </div>
     </div>
 

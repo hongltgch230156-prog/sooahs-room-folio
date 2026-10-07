@@ -21,9 +21,9 @@ export class MascotController {
     this.actionTimer = null;
     
     // Tọa độ ngắm chừng
-    this.startPos = { x: 10, y: 0, z: 0 }; // Nấp sau tường (bên phải)
-    this.peekPos  = { x: 10, y: 0, z: 0 }; // Ngó đầu ra khỏi tường
-    this.finalPos = { x: 10, y: 0, z: 0}; // Vị trí chốt ở góc dưới bên phải
+    this.startPos = { x: 9.5, y: 0 , z: -1.5 }; // Nấp sau tường (bên phải)
+    this.peekPos  = { x: 9.5, y: 0, z: -1.5 }; // Ngó đầu ra khỏi tường
+    this.finalPos = { x: 9.5, y: 0, z: -1.5}; // Vị trí chốt ở góc dưới bên phải
   }
 
   clearTimers() {
@@ -39,7 +39,8 @@ async init() {
       this.startPos.y,
       this.startPos.z
     );
-    return this.loadCharacter(this.charId, position);
+    await this.loadCharacter(this.charId, position);
+    this.setIdle();
   }
 
   async changeCharacter(charId) {
@@ -85,17 +86,25 @@ async init() {
         `/models/char${charId}.glb`,
         (glb) => {
           this.charId = charId;
-          this.mascot = glb.scene;
+          
+          // 1. TẠO GROUP "VỎ BỌC" CHO MASCOT
+          this.mascot = new THREE.Group(); 
+          const model = glb.scene; 
+          this.mascot.add(model); // Nhét mô hình vào vỏ bọc
+          
+          // 2. SET VỊ TRÍ, KÍCH THƯỚC CHO VỎ BỌC
           this.rotOffset = charId >= 3 ? Math.PI / 2 : 0;
-          this.mascot.scale.setScalar(3);
+          this.mascot.scale.setScalar(2.5);
           this.mascot.position.copy(position);
           this.mascot.rotation.y = -Math.PI / 4 + this.rotOffset;
           this.scene.add(this.mascot);
-
-          this.mixer = new THREE.AnimationMixer(this.mascot);
+          
+          // 3. GÁN ANIMATION VÀO MÔ HÌNH BÊN TRONG (Không gán vào vỏ bọc)
+          this.mixer = new THREE.AnimationMixer(model);
           this.actions = {};
           this.currentAction = null;
-
+          
+          // 4. TRẢ LẠI CODE GỐC ĐỂ MASCOT DI CHUYỂN BÌNH THƯỜNG
           glb.animations.forEach((clip) => {
             if (charId === 5) {
               clip.tracks = clip.tracks.filter(
@@ -104,7 +113,7 @@ async init() {
             }
             this.actions[clip.name] = this.mixer.clipAction(clip);
           });
-
+          
           resolve();
         },
         undefined,

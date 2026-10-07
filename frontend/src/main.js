@@ -11,6 +11,7 @@ import themeFragmentShader from "./shaders/theme/fragment.glsl";
 import { initForge } from "./components/forge.js";
 import { MascotController } from "./components/MascotController.js";
 import { ChatbotUI } from "./components/ChatbotUI.js";
+import { initHandLab } from "./components/handlab.js";
 
 /** -------------------------- Audio setup -------------------------- */
 
@@ -653,21 +654,13 @@ function playIntroAnimation() {
     );
 
   const t2 = gsap.timeline({
-    defaults: {
-      duration: 0.8,
-      ease: "back.out(1.8)",
-    },
+    defaults: { duration: 0.8, ease: "back.out(1.8)" },
   });
-
   t2.timeScale(0.8);
-
-  t2.to(boba.scale, {
-    z: 1,
-    y: 1,
-    x: 1,
-    delay: 0.4,
-  })
-
+  t2.to(boba.scale, { z: 1, y: 1, x: 1, delay: 0.4 })
+    // Nối thêm timeline cho Radio và Plant Pot (sẽ pop-up ngay sau ly trà sữa)
+    .to(radioGroup.scale, { x: 1, y: 1, z: 1 }, "-=0.6")
+    .to(plantPotGroup.scale, { x: 1, y: 1, z: 1 }, "-=0.6");
   const tFlowers = gsap.timeline({
     defaults: {
       duration: 0.8,
@@ -1174,6 +1167,87 @@ const loader = new GLTFLoader(manager);
 
 loader.setDRACOLoader(dracoLoader);
 
+// plant pot
+loader.load(
+  "/models/plant_pot.glb",
+  (gltf) => {
+    plantPotGroup = gltf.scene;
+    // Đặt tên có chữ "Hover" để tự động nhận hiệu ứng nảy khi trỏ chuột
+    plantPotGroup.name = "Hover_PlantPot"; 
+    
+    // Lưu lại vị trí, góc xoay và scale gốc để dùng cho animation
+    plantPotGroup.userData.initialPosition = new THREE.Vector3(-6, 6.1, -4);
+    plantPotGroup.userData.initialRotation = new THREE.Euler(0, Math.PI / 3, 0);
+    plantPotGroup.userData.initialScale = new THREE.Vector3(1, 1, 1);
+    
+    plantPotGroup.position.copy(plantPotGroup.userData.initialPosition);
+    plantPotGroup.rotation.copy(plantPotGroup.userData.initialRotation);
+    
+    // Ép scale về 0 để đợi intro xuất hiện
+    plantPotGroup.scale.set(0, 0, 0); 
+    scene.add(plantPotGroup);
+    
+    // Thêm vào mảng tạo hitbox trễ (chờ Intro chạy xong mới cho phép hover)
+    objectsNeedingHitboxes.push(plantPotGroup);
+  }
+);
+
+// radio
+loader.load(
+  "/models/radio.glb",
+  (gltf) => {
+    radioGroup = gltf.scene;
+    radioGroup.name = "Hover_Radio";
+    
+    radioGroup.userData.initialPosition = new THREE.Vector3(-7, 5.95, -4);
+    radioGroup.userData.initialRotation = new THREE.Euler(0, -Math.PI / 4, 0);
+    radioGroup.userData.initialScale = new THREE.Vector3(1, 1, 1);
+    
+    radioGroup.position.copy(radioGroup.userData.initialPosition);
+    radioGroup.rotation.copy(radioGroup.userData.initialRotation);
+    radioGroup.scale.set(0, 0, 0);
+    scene.add(radioGroup);
+    
+    objectsNeedingHitboxes.push(radioGroup);
+  }
+);
+
+// Đặt đảo ở vị trí mascot
+loader.load(
+  "/models/island.glb",
+  (gltf) => {
+    const islandRoot = new THREE.Group();
+    const islandModel = gltf.scene;
+
+    // Bắt đầu với kích thước này, rồi tinh chỉnh cho hợp cảnh
+    islandRoot.scale.setScalar(8);
+
+    islandRoot.rotation.y = -Math.PI / 2; // xoay 90 độ 
+
+    // Căn giữa đảo theo chiều ngang trước khi đặt vào scene
+    islandModel.updateMatrixWorld(true);
+    const bounds = new THREE.Box3().setFromObject(islandModel);
+    const center = bounds.getCenter(new THREE.Vector3());
+    islandModel.position.x -= center.x;
+    islandModel.position.z -= center.z;
+
+    islandRoot.add(islandModel);
+
+    // Mascot hiện ở khoảng x=10, z=0.
+    // Điều chỉnh y để mặt cỏ trên đảo khớp với chân mascot.
+    islandRoot.position.set(8, -1, -0.8);
+
+    islandGroup = islandRoot;
+    islandGroup.userData.initialPosition = islandRoot.position.clone();
+
+    scene.add(islandRoot);
+  },
+  undefined,
+  (error) => {
+    console.error("Không tải được island.glb:", error);
+  }
+);
+
 const environmentMap = new THREE.CubeTextureLoader()
   .setPath("textures/skybox/")
   .load([
@@ -1355,7 +1429,7 @@ videoTexture.flipY = false;
 /** -------------------------- Model and Mesh Setup -------------------------- */
 
 // LOL DO NOT DO THIS USE A FUNCTION TO AUTOMATE THIS PROCESS HAHAHAAHAHAHAHAHAHA
-
+let islandGroup = null;
 let fish;
 let mascotMixer;
 let previousTime = 0;
@@ -1366,6 +1440,9 @@ let chairTop;
 
 const xAxisFans = [];
 const yAxisFans = [];
+
+let radioGroup;
+let plantPotGroup;
 
 let plank1,
   plank2,
@@ -1443,6 +1520,8 @@ const objectsWithIntroAnimations = [
   "About_Button",
   "Contact_Button",
   "Boba",
+  "Hover_Radio",    
+  "Hover_PlantPot",
   "Name_Letter_1",
   "Name_Letter_2",
   "Name_Letter_3",
@@ -1502,7 +1581,7 @@ function hasIntroAnimation(objectName) {
 }
 
 loader.load("/models/Room.glb", (glb) => {
-  glb.scene.position.x -= 3;
+  glb.scene.position.x -= 5;
   glb.scene.traverse((child) => {
     if (child.isMesh) {
       if (child.name.includes("Fish_Fourth")) {
@@ -2157,6 +2236,17 @@ const chatbotUI = new ChatbotUI({
   onClose: () => {
     chatbotMascot.closeChat();
     controls.enabled = !isModalOpen;
+
+    // ĐƯA ĐẢO VỀ VỊ TRÍ CŨ:
+    if (islandGroup && islandGroup.userData.initialPosition) {
+      gsap.to(islandGroup.position, {
+        x: islandGroup.userData.initialPosition.x,
+        y: islandGroup.userData.initialPosition.y,
+        z: islandGroup.userData.initialPosition.z,
+        duration: 0.6,
+        ease: "power2.out",
+      });
+    }
   },
   onSend: sendChatMessage,
   onSelectCharacter: async (id) => {
@@ -2181,6 +2271,24 @@ function openChatIfMascotHit(event) {
   chatbotUI.open();
   chatbotMascot.openChat();
   controls.enabled = false;
+
+  // DỊCH CHUYỂN HÒN ĐẢO CÙNG MASCOT:
+  if (islandGroup && islandGroup.userData.initialPosition) {
+    const cameraRight = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
+    cameraRight.y = 0;
+    cameraRight.normalize();
+    
+    // Đang đẩy sang trái -3 (bằng với mascot). Bạn có thể đổi thành -2 hoặc -2.5 nếu muốn.
+    const islandChatPos = islandGroup.userData.initialPosition.clone().addScaledVector(cameraRight, -3);
+    
+    gsap.to(islandGroup.position, {
+      x: islandChatPos.x,
+      z: islandChatPos.z,
+      duration: 0.6,
+      ease: "power2.out",
+    });
+  }
+
   return true;
 }
 
@@ -2287,6 +2395,7 @@ muteToggleButton.addEventListener(
 );
 
 initForge();
+initHandLab();
 
 // Themeing stuff
 

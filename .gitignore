@@ -24,4 +24,5 @@ dist-ssr
 *.sw?
 
 frontend/public/models/
-.env
+/backend/.env
+/frontend/.env

@@ -1,0 +1,553 @@
+@use "./variables.scss" as vars;
+
+/* Keep the modal frame fixed while each tab scrolls internally. */
+.hand-lab-modal {
+  width: min(1180px, 85vw);
+  height: min(760px, calc(100dvh - 40px));
+  min-height: 0;
+  max-height: calc(100dvh - 40px);
+  padding: 16px 20px;
+  border-radius: 30px;
+  background: vars.$base-light-purple;
+  border: 4px solid vars.$base-purple;
+  flex-direction: column;
+
+  .forge-modal {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  > .forge-modal > .modal-exit-button {
+    top: -2.3rem;
+    right: auto;
+    bottom: auto;
+    left: -2.3rem;
+    z-index: 10;
+  }
+}
+
+.hl-header {
+  flex: 0 0 auto;
+  min-height: 64px;
+  margin-bottom: 12px;
+}
+
+.hl-title {
+  min-width: min(240px, 80%);
+  padding: 6px 22px;
+  font-size: clamp(1rem, 1.8vw, 1.35rem);
+}
+
+.hl-main-container {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Tabs Navigation - Đã thu gọn cho đỡ đau mắt */
+.hl-tabs-wrapper {
+  background: rgba(108, 63, 124, 0.12);
+  border-radius: 14px;
+  padding: 4px;
+  margin-bottom: 12px;
+  flex: 0 0 auto;
+}
+
+.hl-tabs {
+  display: flex;
+  gap: 4px;
+}
+
+.hl-tab-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: none;
+  background: transparent;
+  border-radius: 10px;
+  min-height: 36px;
+  color: rgba(108, 63, 124, 0.65);
+  font-family: 'Nunito', sans-serif;
+  font-weight: 800;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  .hl-tab-icon {
+    width: 16px;
+    height: 16px;
+  }
+
+  &.is-active {
+    background: rgba(108, 63, 124, 0.55);
+    color: #fff;
+  }
+  &:hover:not(.is-active) {
+    color: vars.$base-dark-purple;
+    background: rgba(108, 63, 124, 0.08);
+  }
+}
+
+.hl-content-area {
+  flex: 1;
+  position: relative;
+  display: grid;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.hl-tab-content {
+  grid-area: 1 / 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(108, 63, 124, 0.4) rgba(108, 63, 124, 0.08);
+  padding-right: 8px;
+  padding-bottom: 16px;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(24px);
+  transition:
+    transform 0.3s ease,
+    opacity 0.3s ease,
+    visibility 0s linear 0.3s;
+  will-change: transform;
+
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+  &::-webkit-scrollbar-track {
+    background: rgba(108, 63, 124, 0.08);
+    border-radius: 10px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: rgba(108, 63, 124, 0.25);
+    border-radius: 10px;
+  }
+  &::-webkit-scrollbar-thumb:hover {
+    background: rgba(108, 63, 124, 0.45);
+  }
+}
+
+.hl-tab-content.is-active {
+  pointer-events: auto;
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(0);
+  transition:
+    transform 0.3s ease,
+    opacity 0.3s ease,
+    visibility 0s;
+}
+
+.hl-tab-content.is-before { transform: translateX(-24px); }
+.hl-tab-content.is-after { transform: translateX(24px); }
+
+/* Keep the camera tall while its tab content scrolls around it. */
+.hl-camera-viewport {
+  position: relative;
+  width: 100%;
+  flex: 0 0 auto;
+  height: clamp(340px, 52vh, 420px);
+  background: rgba(205, 179, 214, 0.4);
+  border-radius: 20px;
+  border: 2px solid rgba(108, 63, 124, 0.3);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: inset 0 0 20px rgba(108, 63, 124, 0.1);
+  margin-bottom: 16px;
+
+  .hl-video-feed, .hl-meme-snapshot {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transform: scaleX(-1); 
+  }
+  
+  .hl-video-feed { opacity: 0.85; }
+  .hl-meme-snapshot { z-index: 1; opacity: 0; transition: opacity 0.3s; }
+  .hl-meme-snapshot.is-visible { opacity: 1; }
+}
+
+.hl-meme-viewport {
+  height: clamp(420px, 70vh, 540px);
+  margin-bottom: 8px;
+}
+
+@media (max-width: 640px) {
+  .hl-meme-viewport {
+    height: clamp(340px, 50dvh, 420px);
+  }
+}
+
+/* Các UI nổi trên Camera (Overlay) */
+.hl-scan-overlay, .hl-gesture-trigger {
+  position: absolute;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.hl-scan-indicator {
+  position: relative;
+  width: 90px;
+  height: 110px;
+  border: 2px dashed rgba(108, 63, 124, 0.5);
+  border-radius: 45px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  .hl-face-icon {
+    width: 32px;
+    height: 32px;
+    color: rgba(108, 63, 124, 0.7);
+  }
+}
+
+.hl-scan-text, .hl-trigger-text {
+  color: rgba(108, 63, 124, 0.85);
+  font-family: 'Baloo 2', sans-serif;
+  font-weight: 800;
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.hl-trigger-emoji {
+  font-size: 2.5rem;
+  filter: drop-shadow(0 2px 4px rgba(108, 63, 124, 0.3));
+}
+
+.hl-countdown-number {
+  position: absolute;
+  z-index: 5;
+  font-family: 'Baloo 2', sans-serif;
+  font-size: 4.5rem;
+  font-weight: 800;
+  color: #fff;
+  text-shadow: 0 4px 12px rgba(108, 63, 124, 0.6);
+  opacity: 0;
+  transform: scale(0.5);
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  
+  &.is-visible {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.hl-progress-bar {
+  width: 120px;
+  height: 6px;
+  background: rgba(108, 63, 124, 0.2);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-top: 4px;
+
+  .hl-progress-fill {
+    height: 100%;
+    background: vars.$base-purple;
+    transition: width 0.2s ease;
+  }
+}
+
+.hl-meme-viewport .hl-scan-indicator,
+.hl-meme-viewport .hl-scan-overlay > .hl-progress-bar {
+  visibility: hidden;
+}
+
+/* Các viền góc cho Snap & Solve */
+.hl-snap-viewport {
+  .hl-corner {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border-color: rgba(108, 63, 124, 0.7);
+    border-style: solid;
+    border-width: 0;
+    z-index: 2;
+  }
+  .hl-top-left { top: 12px; left: 12px; border-top-width: 2px; border-left-width: 2px; border-top-left-radius: 6px; }
+  .hl-top-right { top: 12px; right: 12px; border-top-width: 2px; border-right-width: 2px; border-top-right-radius: 6px; }
+  .hl-bottom-left { bottom: 12px; left: 12px; border-bottom-width: 2px; border-left-width: 2px; border-bottom-left-radius: 6px; }
+  .hl-bottom-right { bottom: 12px; right: 12px; border-bottom-width: 2px; border-right-width: 2px; border-bottom-right-radius: 6px; }
+}
+
+.hl-helper-text {
+  text-align: center;
+  color: rgba(108, 63, 124, 0.75);
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.7rem;
+  font-weight: 800;
+  margin-bottom: 0;
+}
+
+/* Panel Kết quả Meme Search */
+.hl-results-panel {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  padding-top: 0;
+}
+
+/* Tối ưu hiển thị Camera trên màn hình thiết bị nhỏ (Mobile/Tablet) */
+@media (max-width: 640px) {
+  .hl-camera-viewport {
+    height: clamp(280px, 45dvh, 360px);
+  }
+}
+
+.hl-results-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.hl-results-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.hl-section-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: vars.$base-dark-purple;
+  font-family: 'Baloo 2', sans-serif;
+  font-weight: 800;
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+
+  svg { width: 14px; height: 14px; }
+}
+
+.hl-result-tabs {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 116px;
+  padding: 3px;
+  border: 1px solid rgba(108, 63, 124, 0.45);
+  border-radius: 999px;
+  background: rgba(205, 179, 214, 0.35);
+  isolation: isolate;
+
+  &::before {
+    position: absolute;
+    z-index: -1;
+    top: 3px;
+    bottom: 3px;
+    left: 3px;
+    width: calc(50% - 3px);
+    border-radius: 999px;
+    background: rgba(108, 63, 124, 0.72);
+    content: "";
+    transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  &.is-meme-active::before {
+    transform: translateX(100%);
+  }
+}
+
+.hl-result-tab {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  min-width: 0;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: rgba(108, 63, 124, 0.7);
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.65rem;
+  font-weight: 800;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: color 0.24s ease, transform 0.24s ease;
+
+  &:hover {
+    color: vars.$base-dark-purple;
+  }
+
+  &.is-active,
+  &.is-active:hover {
+    color: #fff;
+  }
+
+  &:active {
+    transform: scale(0.94);
+  }
+
+  &:focus-visible {
+    outline: 2px solid vars.$base-dark-purple;
+    outline-offset: 2px;
+  }
+}
+
+.hl-results-content[hidden],
+.hl-meme-placeholder[hidden] {
+  display: none;
+}
+
+.hl-meme-placeholder {
+  display: grid;
+  min-height: 100px;
+  place-items: center;
+  border: 1px dashed rgba(108, 63, 124, 0.3);
+  border-radius: 12px;
+  color: rgba(108, 63, 124, 0.72);
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.hl-rescan-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #fff;
+  border: 2px solid rgba(108, 63, 124, 0.4);
+  border-radius: 12px;
+  padding: 4px 12px;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 800;
+  font-size: 0.7rem;
+  color: vars.$base-dark-purple;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  svg { width: 12px; height: 12px; }
+  &:hover:not(:disabled) { 
+    transform: translateY(-2px); 
+    border-color: vars.$base-purple;
+    box-shadow: 0 4px 8px rgba(108, 63, 124, 0.1);
+  }
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+/* Lưới Meme gọn gàng */
+.hl-meme-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  min-height: 100px;
+}
+
+.hl-meme-card {
+  display: block;
+  overflow: hidden;
+  border-radius: 10px;
+  border: 2px solid rgba(108, 63, 124, 0.3);
+  transition: all 0.2s;
+  position: relative;
+  
+  img {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    display: block;
+  }
+
+  &:hover {
+    border-color: vars.$base-purple;
+    transform: scale(1.02);
+  }
+
+  .hl-match-badge {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    z-index: 1;
+    padding: 3px 7px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.9);
+    color: #6c3f7c;
+    font-size: 0.65rem;
+    font-weight: 800;
+  }
+}
+
+.hl-giphy-attribution {
+  text-align: right;
+  color: rgba(108, 63, 124, 0.4);
+  font-size: 0.6rem;
+  font-weight: 700;
+  margin-top: 4px;
+}
+
+@media (max-width: 480px) {
+  .hl-results-heading {
+    gap: 8px;
+  }
+
+  .hl-section-label {
+    gap: 4px;
+    font-size: 0.68rem;
+  }
+
+  .hl-result-tabs {
+    width: 104px;
+  }
+}
+
+/* Hiệu ứng khung máy ảnh chạy theo tay Real-time */
+.hl-gesture-frame {
+  position: absolute;
+  border: 3px dashed rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.05); /* Phủ mờ nhẹ bên trong khung */
+  border-radius: 12px;
+  pointer-events: none;
+  z-index: 3;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  box-shadow: 0 0 20px rgba(108, 63, 124, 0.4), inset 0 0 10px rgba(108, 63, 124, 0.2);
+
+  /* Bốn góc ngắm chụp máy ảnh */
+  &::before, &::after {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border: 3px solid rgba(108, 63, 124, 0.8);
+    border-radius: 12px;
+    box-sizing: border-box;
+    clip-path: polygon(
+      0 0, 15% 0, 15% 100%, 0 100%, 0 0,
+      85% 0, 100% 0, 100% 100%, 85% 100%, 85% 0
+    ); /* Cắt mép viền để tạo cảm giác focus */
+  }
+
+  &.is-visible {
+    opacity: 1;
+  }
+}
