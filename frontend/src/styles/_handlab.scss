@@ -181,7 +181,10 @@
     transform: scaleX(-1); 
   }
   
-  .hl-video-feed { opacity: 0.85; }
+  .hl-video-feed { 
+    opacity: 1; 
+    filter: contrast(1.05) saturate(1.1) brightness(1.02); /* Thêm độ nét và rực màu */
+  }
   .hl-meme-snapshot { z-index: 1; opacity: 0; transition: opacity 0.3s; }
   .hl-meme-snapshot.is-visible { opacity: 1; }
 }
@@ -549,5 +552,286 @@
 
   &.is-visible {
     opacity: 1;
+  }
+}
+
+/* =========================================
+   SNAP & SOLVE - HAND TRACKING GAMEPLAY
+   ========================================= */
+.hl-puzzle-gameplay {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.puzzle-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 12px;
+}
+
+.puzzle-progress-wrap {
+  width: 200px;
+  .puzzle-progress-text {
+    font-family: 'Baloo 2', sans-serif;
+    font-weight: 800;
+    color: rgba(108, 63, 124, 0.7);
+    font-size: 0.8rem;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+  }
+  .puzzle-progress-bar {
+    width: 100%;
+    height: 8px;
+    background: rgba(108, 63, 124, 0.15);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .puzzle-progress-fill {
+    height: 100%;
+    background: #62c370;
+    width: 0%;
+    transition: width 0.3s ease;
+  }
+}
+
+.puzzle-helper-text {
+  font-family: 'Nunito', sans-serif;
+  font-weight: 800;
+  font-size: 0.75rem;
+  color: rgba(108, 63, 124, 0.7);
+}
+
+.puzzle-layout {
+  display: flex;
+  gap: 16px;
+  flex: 1;
+  min-height: 0;
+
+  /* --- CỘT TRÁI --- */
+  .puzzle-left-col {
+    flex: 0 0 220px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  /* Khung Camera */
+  .puzzle-cam-box {
+    background: rgba(205, 179, 214, 0.3);
+    border-radius: 16px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .puzzle-cam-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: #fff;
+    padding: 4px 12px;
+    border-radius: 8px;
+    align-self: flex-start;
+    color: rgba(108, 63, 124, 0.6);
+    font-family: 'Nunito', sans-serif;
+    font-weight: 800;
+    font-size: 0.6rem;
+    .cam-icon { width: 12px; height: 12px; }
+  }
+  .puzzle-cam-view {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1/1; /* Ô vuông cho giống thiết kế */
+    border-radius: 12px;
+    overflow: hidden;
+    border: 3px solid rgba(108, 63, 124, 0.5);
+
+    video, .hl-canvas-overlay {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      object-fit: cover;
+      transform: scaleX(-1);
+    }
+    .hl-canvas-overlay { z-index: 10; pointer-events: none; }
+  }
+  .cam-hint {
+    text-align: center;
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.65rem;
+    font-weight: 800;
+    color: rgba(108, 63, 124, 0.7);
+    text-transform: uppercase;
+  }
+
+  /* Chọn Level */
+  .puzzle-level-select {
+    background: rgba(255, 255, 255, 0.6);
+    border-radius: 16px;
+    padding: 12px;
+  }
+  .level-header {
+    display: flex;
+    justify-content: space-between;
+    color: rgba(108, 63, 124, 0.7);
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.65rem;
+    font-weight: 800;
+    margin-bottom: 12px;
+    span { color: #fbbf24; }
+  }
+  .level-dots {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    .level-arrow {
+      background: transparent; border: none; font-size: 1rem; color: rgba(108, 63, 124, 0.5); cursor: pointer;
+    }
+    .level-dot {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-family: 'Baloo 2', sans-serif; font-size: 0.9rem;
+      border: 2px solid rgba(108, 63, 124, 0.1);
+      color: rgba(108, 63, 124, 0.3);
+      &.is-active { background: vars.$base-purple; color: #fff; border: none; box-shadow: 0 4px 10px rgba(108,63,124,0.3); }
+    }
+  }
+
+  /* --- CỘT PHẢI (Bảng xếp hình) --- */
+  .puzzle-board-container {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  overflow: hidden;
+  border: 2px solid rgba(108, 63, 124, 0.38);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.28);
+  box-shadow: inset 0 2px 8px rgba(60, 35, 70, 0.08);
+}
+}
+
+
+.puzzle-board {
+    flex: 0 1 auto;
+    width: auto;
+    height: 100%;
+    max-width: 100%;
+    max-height: 100%;
+    aspect-ratio: 4 / 3;
+
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-rows: repeat(3, minmax(0, 1fr));
+    gap: 0;
+
+    // Đừng cắt bóng và cạnh ghép ở mép ngoài
+    overflow: visible;
+    border-radius: 10px;
+    isolation: isolate;
+}
+
+.puzzle-piece {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+    z-index: 1;
+
+    transition:
+        transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1),
+        filter 0.18s ease;
+
+    .puzzle-piece-svg { display: block; width: 100%; height: 100%; overflow: visible; }
+
+    .p-3d { transition: opacity 0.35s ease; }
+
+    // Đúng vị trí => bỏ bóng/vát/viền, các mảnh liền thành 1 ảnh
+    &.is-placed {
+        z-index: 1;
+        .p-3d { opacity: 0; }
+    }
+
+    &.is-grabbed {
+        z-index: 50;
+        transition: none;
+        will-change: transform;
+        .p-lift { opacity: 1; }
+        //transform: translateY(-3px) scale(1.035);
+        //filter: drop-shadow(0 6px 8px rgba(70, 48, 86, 0.25));
+    }
+}
+
+/* Con trỏ ảo AR chạy theo bàn tay */
+.virtual-cursor {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 48px;
+  height: 48px;
+  margin-left: -24px; /* Căn giữa tâm x */
+  margin-top: -24px;  /* Căn giữa tâm y */
+  pointer-events: none; /* Xuyên thấu click */
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  //transition: transform 0.05s linear; /* Bám theo tay mượt mà */
+
+  /* Vòng tròn bên ngoài */
+  .cursor-ring {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border: 3px solid rgba(255, 255, 255, 0.9);
+    border-radius: 50%;
+    box-shadow: 0 0 10px rgba(108, 63, 124, 0.6), inset 0 0 8px rgba(108, 63, 124, 0.4);
+    transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1); /* Hiệu ứng nảy khi gắp */
+  }
+
+  /* Chấm tâm để ngắm chính xác */
+  .cursor-dot {
+    width: 8px;
+    height: 8px;
+    background: #fff;
+    border-radius: 50%;
+    box-shadow: 0 0 8px rgba(108, 63, 124, 0.8);
+    transition: all 0.2s ease;
+  }
+
+  /* TRẠNG THÁI GẮP (NẮM TAY) */
+  &.is-grabbing {
+    .cursor-ring {
+      transform: scale(0.45); /* Vòng tròn thu nhỏ lại ôm sát */
+      border-width: 6px;
+      border-color: #4ade80; /* Chuyển màu xanh lá */
+      box-shadow: 0 0 15px rgba(74, 222, 128, 0.6);
+    }
+    .cursor-dot {
+      opacity: 0; /* Ẩn chấm tâm đi */
+    }
+  }
+}
+
+.hl-camera-viewport.hl-snap-viewport {
+  height: clamp(420px, 68dvh, 620px);
+}
+
+.hl-camera-viewport.hl-snap-viewport .hl-video-feed {
+  object-fit: cover;
+  object-position: center;
+}
+
+@media (max-width: 640px) {
+  .hl-camera-viewport.hl-snap-viewport {
+    height: clamp(360px, 62dvh, 520px);
   }
 }

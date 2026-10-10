@@ -7,6 +7,7 @@ import {
   FilesetResolver,
   GestureRecognizer,
   FaceLandmarker,
+  DrawingUtils
 } from "@mediapipe/tasks-vision";
 
 const VISION_WASM_URL =
@@ -39,10 +40,25 @@ let lastAutoScanGesture = "None";
 let autoScanTriggered = false;
 let onGestureStableCallback = null;
 
-// BIẾN DÀNH CHO TÍNH NĂNG "CAMERA FRAME"
+let miniCanvas = null;
+let miniCtx = null;
+let drawingUtils = null;
+
 let cameraFrameBox = null;
 let isFraming = false;
 let framingSince = 0;
+let onHandTrackingCallback = null;
+export function setOnHandTracking(callback) {
+    onHandTrackingCallback = callback;
+
+    // Đang chơi ghép hình chỉ cần 1 tay (nhanh hơn, và không bị nhảy qua lại giữa 2 tay).
+    // Hết game -> trả về 2 tay cho động tác "khung ảnh".
+    try {
+        gestureRecognizer?.setOptions({ numHands: callback ? 1 : 2 });
+    } catch (e) {
+        console.warn("[Hand Lab] setOptions failed:", e);
+    }
+}
 const FRAMING_STABLE_DURATION = 800; // 0.8 giây giữ khung ảnh để kích hoạt chụp
 
 const STABLE_DURATION = 700;
@@ -55,19 +71,25 @@ async function initializeMediaPipe() {
     VISION_WASM_URL
   );
 
-  gestureRecognizer = await GestureRecognizer.createFromOptions(
-    vision,
-    {
+  const createGestureRecognizer = (delegate) =>
+    GestureRecognizer.createFromOptions(vision, {
       baseOptions: {
         modelAssetPath: GESTURE_MODEL_URL,
+        delegate, // "GPU" nhanh hơn rất nhiều so với "CPU"
       },
       runningMode: "VIDEO",
       numHands: 2,
       minHandDetectionConfidence: 0.5,
       minHandPresenceConfidence: 0.5,
       minTrackingConfidence: 0.5,
-    }
-  );
+    });
+
+  try {
+    gestureRecognizer = await createGestureRecognizer("GPU");
+  } catch (e) {
+    console.warn("[Hand Lab] GPU delegate failed, falling back to CPU:", e);
+    gestureRecognizer = await createGestureRecognizer("CPU");
+  }
 
   faceLandmarker = await FaceLandmarker.createFromOptions(
     vision,
@@ -101,10 +123,13 @@ async function startCamera() {
     video: {
       facingMode: "user",
       width: {
-        ideal: 1280,
+        ideal: 640,
       },
       height: {
-        ideal: 720,
+        ideal: 480,
+      },
+      frameRate: {
+        ideal: 30,
       },
     },
     audio: false,
@@ -163,9 +188,68 @@ function detectGesture(timestamp) {
     const bestGesture = result.gestures[0][0];
     currentGesture = normalizeGesture(bestGesture.categoryName);
     currentGestureScore = bestGesture.score || 0;
+
+    // --- THÊM ĐOẠN XUẤT TỌA ĐỘ VÀO ĐÂY ---
+    if (result.landmarks && result.landmarks.length > 0) {
+    const hand = result.landmarks[0];
+    const pointer = hand[9]; 
+    
+    // --- Vẽ Khung Xương (Landmarks) lên Mini Canvas ---
+    if (activeTabId === "snap-solve") {
+      if (!miniCanvas || !miniCanvas.isConnected) {
+        miniCanvas = document.getElementById("hl-canvas-mini");
+        miniCtx = null;
+        drawingUtils = null;
+      }
+      if (miniCanvas) {
+        if (!miniCtx) miniCtx = miniCanvas.getContext("2d");
+        if (!drawingUtils) drawingUtils = new DrawingUtils(miniCtx);
+        
+        // Khớp kích thước canvas với video — CHỈ khi đổi (gán width/height xóa + cấp phát lại canvas)
+        if (miniCanvas.width !== videoElement.videoWidth) miniCanvas.width = videoElement.videoWidth;
+        if (miniCanvas.height !== videoElement.videoHeight) miniCanvas.height = videoElement.videoHeight;
+        
+        miniCtx.save();
+        miniCtx.clearRect(0, 0, miniCanvas.width, miniCanvas.height);
+        
+        // Vẽ xương tay (Landmarks và Connections)
+        for (const landmarks of result.landmarks) {
+          drawingUtils.drawConnectors(landmarks, GestureRecognizer.HAND_CONNECTIONS, {
+            color: "#00FF00", // Màu xanh lá cho đường nối
+            lineWidth: 3
+          });
+          drawingUtils.drawLandmarks(landmarks, {
+            color: "#FF0000", // Màu đỏ cho các khớp
+            lineWidth: 2,
+            radius: 4
+          });
+        }
+        miniCtx.restore();
+      }
+    }
+    // ------------------------------------------------
+
+    if (onHandTrackingCallback) {
+        onHandTrackingCallback(1 - pointer.x, pointer.y, currentGesture);
+    }
   } else {
     currentGesture = "None";
     currentGestureScore = 0;
+    
+    // Xóa canvas khi không thấy tay
+    if (miniCtx && miniCanvas) {
+        miniCtx.clearRect(0, 0, miniCanvas.width, miniCanvas.height);
+    }
+
+    if (onHandTrackingCallback) onHandTrackingCallback(null, null, "None");
+  }
+    // -------------------------------------
+
+  } else {
+    currentGesture = "None";
+    currentGestureScore = 0;
+    // Báo cho UI biết là mất dấu tay
+    if (onHandTrackingCallback) onHandTrackingCallback(null, null, "None");
   }
 
   // 2. TÍNH TOÁN KHUNG HÌNH TỪ 2 BÀN TAY (CAMERA FRAME)
@@ -347,9 +431,20 @@ function processFrame() {
 
   if (videoElement.readyState >= 2 && videoElement.currentTime !== lastVideoTime) {
     const timestamp = performance.now();
-    detectGesture(timestamp);
-    detectFace(timestamp);
     lastVideoTime = videoElement.currentTime;
+
+    // setOnHandTracking(callback) chỉ khác null khi đang chơi ghép hình
+    const isPlayingPuzzle = !!onHandTrackingCallback;
+
+    detectGesture(timestamp);
+
+    if (isPlayingPuzzle) {
+      // Chỉ cần theo dõi tay: bỏ nhận diện khuôn mặt, cập nhật UI "khung ảnh" và đếm giờ chụp
+      animationFrameId = requestAnimationFrame(processFrame);
+      return;
+    }
+
+    detectFace(timestamp);
     updateMemeUI();
 
     // KIỂM TRA TỰ ĐỘNG CHỤP: Kích hoạt khi user giơ khung ảnh (isFraming)
@@ -384,17 +479,19 @@ export function resetAutoScan() {
  * Cập nhật UI camera và vẽ Real-time Frame
  */
 function updateMemeUI() {
-  const scanText = document.querySelector(".hl-scan-text");
-  const progressFill = document.querySelector("#tab-meme-search .hl-progress-fill");
-  const helperText = document.querySelector("#tab-meme-search .hl-helper-text");
+  const tabSelector = `#tab-${activeTabId}`; // Trỏ đúng tab
+  const scanText = document.querySelector(`${tabSelector} .hl-scan-text`);
+  const progressFill = document.querySelector(`${tabSelector} .hl-progress-fill`);
+  const helperText = document.querySelector(`${tabSelector} .hl-helper-text`);
 
   // Tạo (nếu chưa có) và cập nhật thẻ div làm Khung Ảnh
-  let frameEl = document.querySelector(".hl-gesture-frame");
+  let frameEl = document.querySelector(`${tabSelector} .hl-gesture-frame`);
   if (!frameEl) {
     frameEl = document.createElement("div");
     frameEl.className = "hl-gesture-frame";
-    const viewport = document.querySelector(".hl-meme-viewport");
-    if (viewport) viewport.appendChild(frameEl); // Chèn vào trong camera
+    // Nhét khung lưới vào đúng viewport
+    const viewport = document.querySelector(`${tabSelector} .hl-camera-viewport`);
+    if (viewport) viewport.appendChild(frameEl); 
   }
 
   // Nếu nhận diện được khung tay, gắn tọa độ CSS vào thẻ div
@@ -436,62 +533,37 @@ function updateMemeUI() {
 /**
  * Start Meme Search detector
  */
-export async function startMemeDetector() {
-  if (isRunning) {
-    return;
-  }
+let activeTabId = "meme-search"; 
 
-  videoElement =
-    document.getElementById("hl-webcam-meme");
+export async function startDetector(tabId = "meme-search") {
+  activeTabId = tabId; // Lưu lại tab hiện tại
+  if (isRunning) return;
 
-  if (!videoElement) {
-    console.warn(
-      "[Meme Search] Webcam element not found."
-    );
+  // Tự động nhận diện video của tab tương ứng
+  const videoId = tabId === "meme-search" ? "hl-webcam-meme" : "hl-webcam-puzzle";
+  videoElement = document.getElementById(videoId);
 
-    return;
-  }
+  if (!videoElement) return;
 
   try {
     await initializeMediaPipe();
     await startCamera();
-
     isRunning = true;
-
     processFrame();
-
-    console.log(
-      "[Meme Search] Detector started."
-    );
   } catch (error) {
-    console.error(
-      "[Meme Search] Failed to start:",
-      error
-    );
-
-    const helperText =
-      document.querySelector(
-        "#tab-meme-search .hl-helper-text"
-      );
-
-    if (helperText) {
-      helperText.textContent =
-        "Camera or AI initialization failed.";
-    }
+    console.error("Camera failed:", error);
   }
 }
 
 /**
  * Stop Meme Search detector
  */
-export function stopMemeDetector() {
+export function stopDetector() {
   isRunning = false;
-
   if (animationFrameId) {
     cancelAnimationFrame(animationFrameId);
     animationFrameId = null;
   }
-
   stopCamera();
 }
 

@@ -1,7 +1,8 @@
 // frontend/src/components/handlab.js
+import { initSnapSolve, startPuzzleCaptureFlow } from "./snapSolve.js";
 import {
-    startMemeDetector,
-    stopMemeDetector,
+    startDetector,
+    stopDetector,
     captureMemeSnapshot,
     setOnGestureStable,
     resetAutoScan
@@ -105,12 +106,14 @@ export function initHandLab() {
     });
 
     // Meme Search vừa được mở
+    stopDetector(); // Dừng camera cũ
     if (targetTabId === "meme-search") {
-      await startMemeDetector();
+      await startDetector("meme-search");
       resetAutoScan();
-    } else {
-      // Rời Meme Search -> tắt camera
-      stopMemeDetector();
+    } else if (targetTabId === "snap-solve") {
+      await startDetector("snap-solve");
+      resetAutoScan();
+      initSnapSolve();
     }
   };
 
@@ -146,12 +149,20 @@ export function initHandLab() {
 
     // LẮNG NGHE SỰ KIỆN TỰ ĐỘNG CHỤP TỪ MEDIA PIPE
     setOnGestureStable(async () => {
-        const memeTab = document.getElementById("tab-meme-search");
-        const resultsPanel = document.querySelector(".hl-results-panel");
-        const isResultsHidden = window.getComputedStyle(resultsPanel).display === 'none';
+        const activeTabBtn = document.querySelector(".hl-tab-btn.is-active");
+        if (!activeTabBtn) return;
+        const activeTab = activeTabBtn.dataset.tab;
 
-        if (memeTab && memeTab.classList.contains("is-active") && isResultsHidden) {
-            await startMemeCaptureFlow();
+        if (activeTab === "meme-search") {
+            const resultsPanel = document.querySelector("#tab-meme-search .hl-results-panel");
+            if (window.getComputedStyle(resultsPanel).display === 'none') {
+                await startMemeCaptureFlow();
+            }
+        } else if (activeTab === "snap-solve") {
+            const levelView = document.getElementById("hl-level-view");
+            if (window.getComputedStyle(levelView).display === 'none') {
+                await startPuzzleCaptureFlow(); // Gọi flow chụp ảnh xếp hình
+            }
         }
     });
 
@@ -196,7 +207,7 @@ export function initHandLab() {
     memeTab &&
     memeTab.classList.contains("is-active")
   ) {
-    startMemeDetector();
+    startDetector("meme-search");
     resetAutoScan();
   }
 }

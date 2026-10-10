@@ -88,12 +88,23 @@ app.post('/api/create-task', upload.fields([{ name: 'source', maxCount: 1 }, { n
 
     const finalBase64 = `data:${finalMime};base64,${finalBuffer.toString('base64')}`;
     
-    // Vì không dùng DAV2 nữa, ta LUÔN đẩy lên Trellis-2
+    // đẩy lên Trellis-2
     console.log(`Đang đẩy ảnh lên Fal.ai TRELLIS để nặn 3D (chế độ: ${mode})...`);
     const endpoint = "fal-ai/trellis-2";
+
+    // Cấu hình thông số mặc định
+    let trellisInput = { 
+      image_url: finalBase64,
+      // Ép texture (vân bề mặt) luôn xuất ra ở độ phân giải cao nhất
+      texture_size: 1024 
+    };
+
+    if (mode === 'single') {
+      trellisInput.remove_background = true;
+    }
     
     const { request_id } = await fal.queue.submit(endpoint, {
-      input: { image_url: finalBase64 }
+      input: trellisInput
     });
     res.json({ code: 0, data: { task_id: request_id } });
   } catch (error) {

@@ -688,20 +688,72 @@
                  <div class="hl-corner hl-top-right"></div>
                  <div class="hl-corner hl-bottom-left"></div>
                  <div class="hl-corner hl-bottom-right"></div>
-
-                 <div class="hl-gesture-trigger">
-                    <span class="hl-trigger-emoji">👌</span>
-                    <div class="hl-trigger-text">RAISE <span class="hl-trigger-icon-small">👌</span> OK TO CAPTURE</div>
-                    <div class="hl-progress-bar hl-capture-progress">
-                      <div class="hl-progress-fill" style="width: 0%;"></div>
-                    </div>
-                 </div>
+                 
+                 <!-- THÊM MỚI: Overlay đếm ngược và chỉ dẫn khung ảnh -->
+                 <div class="hl-countdown-number"></div>
               </div>
-              <div class="hl-helper-text">Press & hold the viewfinder = holding up the 👌 OK gesture. No buttons, no mouse.</div>
+              <div class="hl-helper-text">Use 2 hands to frame your face. Expand to capture.</div>
 
-              <!-- Giao diện chọn Level (Hiển thị sau khi chụp) -->
-              <div class="hl-puzzle-levels" id="hl-level-view" style="display: none;">
-                <!-- ... Nội dung chọn level (giữ nguyên cấu trúc cũ nếu muốn) ... -->
+              <!-- Giao diện Chơi Xếp Hình (Hiển thị sau khi chụp) -->
+              <div class="hl-puzzle-gameplay" id="hl-level-view" style="display: none;">
+                
+                <!-- HEADER CHUNG (Progress & Helper text) -->
+                <div class="puzzle-header">
+                  <div class="puzzle-progress-wrap">
+                    <div class="puzzle-progress-text">Progress: <span id="puzzle-score">0</span>/12</div>
+                    <div class="puzzle-progress-bar">
+                      <div class="puzzle-progress-fill" id="puzzle-progress"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- BỐ CỤC 2 CỘT (Cam nhỏ bên trái, Bàn cờ bên phải) -->
+                <div class="puzzle-layout">
+                  
+                  <!-- CỘT TRÁI -->
+                  <div class="puzzle-left-col">
+                    <div class="puzzle-cam-box" id="mini-cam-container">
+                      <div class="puzzle-cam-header">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="cam-icon"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                        <span>WEBCAM</span>
+                      </div>
+                      <div class="puzzle-cam-view">
+                        <video id="hl-webcam-mini" autoplay playsinline muted></video>
+                        <canvas id="hl-canvas-mini" class="hl-canvas-overlay"></canvas>
+                      </div>
+                      <div class="cam-hint">Hand Tracking Area</div>
+                    </div>
+
+                    <!-- Khu vực chọn Level (Làm nền mờ để chuẩn bị cho tương lai) -->
+                    <div class="puzzle-level-select">
+                      <div class="level-header">SELECT LEVEL <span>⭐ ⭐</span></div>
+                      <div class="level-dots">
+                        <button class="level-arrow">❮</button>
+                        <div class="level-dot is-active">1</div>
+                        <div class="level-dot is-locked">🔒</div>
+                        <div class="level-dot is-locked">🔒</div>
+                        <button class="level-arrow">❯</button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- CỘT PHẢI -->
+                  <div class="puzzle-board-container" id="puzzle-board-container">
+                    <div class="puzzle-board" id="puzzle-board"></div>
+                    
+                    <!-- AR Cursor vòng tròn ngắm (Khóa chặt trong bảng 9 ô) -->
+                    <div id="virtual-cursor" class="virtual-cursor">
+                      <div class="cursor-ring"></div>
+                      <div class="cursor-dot"></div>
+                    </div>
+                  </div>
+
+                </div>
+
+                <button class="hl-action-btn hl-rescan-btn" id="btn-restart-puzzle" style="margin: 16px auto 0;">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
+                  PLAY AGAIN
+                </button>
               </div>
             </div>
 
