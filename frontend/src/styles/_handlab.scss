@@ -890,3 +890,322 @@
     height: clamp(360px, 62dvh, 520px);
   }
 }
+
+/* =========================================
+   SNAP & SOLVE - LEVEL 3 / 4 / 5
+   ========================================= */
+
+.puzzle-board-container {
+  isolation: isolate;   // z-index của overlay chỉ có tác dụng bên trong khung bảng
+}
+
+// Mọi overlay: nằm tuyệt đối trong .puzzle-board-container, mặc định không bắt chuột.
+// (vị trí/kích thước của overlay phủ bảng do JS gán theo khung bảng thật)
+.ss-extra {
+  position: absolute;
+  box-sizing: border-box;
+  pointer-events: none;
+}
+
+/* ---------- Ảnh mẫu 3 giây (L3, L4) ---------- */
+.ss-preview {
+  z-index: 70;
+  border-radius: 10px;
+  background-size: cover;
+  background-position: center;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.85), 0 8px 24px rgba(60, 35, 70, 0.35);
+  transition: opacity 0.45s ease;
+  &.is-off { opacity: 0; }
+
+  .ss-preview-label {
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 4px 14px;
+    border-radius: 999px;
+    background: rgba(108, 63, 124, 0.9);
+    color: #fff;
+    font-family: 'Baloo 2', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+}
+
+/* ---------- LEVEL 3: bóng tối + đèn pin ---------- */
+.ss-dark {
+  z-index: 60;
+  border-radius: 10px;
+  // JS cập nhật 3 biến này mỗi frame: tâm đèn (--sx, --sy) và bán kính (--sr)
+  --sx: 50%;
+  --sy: 50%;
+  --sr: 1px;
+  background: radial-gradient(
+    circle var(--sr) at var(--sx) var(--sy),
+    rgba(8, 6, 22, 0) 0%,
+    rgba(8, 6, 22, 0) 58%,      // vùng sáng hẳn
+    rgba(8, 6, 22, 0.97) 100%   // viền mờ dần ra bóng tối
+  );
+  transition: opacity 0.6s ease;
+  &.is-off { opacity: 0; }       // thắng -> bật sáng cả bảng
+}
+
+.ss-lamp {
+  z-index: 90;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(20, 14, 38, 0.85);
+  color: #fff;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.7rem;
+  font-weight: 800;
+
+  .ss-lamp-bar {
+    width: 56px;
+    height: 6px;
+    border-radius: 99px;
+    background: rgba(255, 255, 255, 0.2);
+    overflow: hidden;
+    i {
+      display: block;
+      width: 100%;
+      height: 100%;
+      border-radius: inherit;
+      background: #fbbf24;
+    }
+  }
+  &[data-state="on"] i { background: #fde047; box-shadow: 0 0 8px #fde047; }
+  &[data-state="cooldown"] i { background: #94a3b8; }
+}
+
+/* ---------- LEVEL 4: mảnh rơi ---------- */
+.ss-ghost {
+  z-index: 0;                    // nằm sau bảng; độ mờ do JS gán (CATCH_GHOST_OPACITY)
+  border-radius: 10px;
+  background-size: cover;
+  background-position: center;
+}
+
+.ss-fall-layer {
+  inset: 0;
+  z-index: 40;
+  overflow: hidden;
+}
+
+.ss-floor {                      // vạch đỏ "đáy" của bảng
+  z-index: 45;
+  border-radius: 10px;
+  border-bottom: 3px solid rgba(239, 68, 68, 0.75);
+  background: linear-gradient(to top, rgba(248, 113, 113, 0.42), rgba(248, 113, 113, 0) 16%);
+}
+
+.ss-hud {
+  z-index: 90;
+  top: 10px;
+  left: 10px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.88);
+  font-size: 0.8rem;
+  letter-spacing: 2px;
+  line-height: 1.2;
+}
+
+.fall-piece {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transition: none !important;   // vị trí cập nhật mỗi frame bằng JS
+  will-change: transform;
+  &.is-grabbed {
+    z-index: 5;
+    filter: drop-shadow(0 8px 10px rgba(70, 48, 86, 0.35));
+  }
+  &.is-missed { animation: ssMiss 0.35s ease forwards; }
+}
+
+.puzzle-piece.is-empty {
+  border-radius: 6px;
+  box-shadow: inset 0 0 0 1.5px rgba(108, 63, 124, 0.28);
+}
+.puzzle-piece.is-snap { animation: ssPop 0.35s cubic-bezier(0.2, 1.4, 0.4, 1); }
+
+/* ---------- LEVEL 5: biểu tượng cử chỉ trên từng ô ---------- */
+.ss-pose-layer {
+  z-index: 30;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-rows: repeat(3, minmax(0, 1fr));
+
+  .ss-pose-cell {
+    position: relative;
+    min-width: 0;
+    min-height: 0;
+  }
+}
+
+.ss-chip {
+  position: absolute;
+  top: 7%;
+  right: 7%;
+  width: clamp(22px, 34%, 42px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 2px 6px rgba(60, 35, 70, 0.35);
+  font-size: clamp(0.8rem, 2.2vw, 1.3rem);
+  line-height: 1;
+  --deg: 0deg;                   // JS gán tiến độ giữ cử chỉ (0..360deg)
+  transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+
+  span { position: relative; }
+
+  // mảnh đã đúng chỗ, chờ làm cử chỉ để khóa
+  &.is-ready {
+    animation: ssChipPulse 1s ease-in-out infinite;
+    box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.9), 0 0 14px rgba(251, 191, 36, 0.8);
+  }
+  // đang giữ đúng cử chỉ: vòng xanh chạy quanh biểu tượng
+  &.is-holding {
+    animation: none;
+    transform: scale(1.25);
+    background: conic-gradient(#4ade80 var(--deg), rgba(255, 255, 255, 0.9) 0);
+    &::before {
+      content: "";
+      position: absolute;
+      inset: 15%;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.96);
+    }
+  }
+  &.is-locked {
+    animation: none;
+    transform: none;
+    background: #4ade80;
+    box-shadow: 0 0 0 3px #fff, 0 2px 8px rgba(34, 197, 94, 0.6);
+  }
+}
+
+// viền trên chính mảnh ghép
+.puzzle-piece.is-ready::after,
+.puzzle-piece.is-locked::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 6px;
+  pointer-events: none;
+}
+.puzzle-piece.is-ready::after {
+  box-shadow: inset 0 0 0 2px rgba(251, 191, 36, 0.95);
+  animation: ssReady 1s ease-in-out infinite;
+}
+.puzzle-piece.is-locked::after {
+  box-shadow: inset 0 0 0 2px rgba(74, 222, 128, 0.9);
+  transition: opacity 0.6s ease;
+}
+// xong hết -> ẩn các viền để ảnh liền một khối
+.puzzle-board.is-complete .puzzle-piece.is-locked::after { opacity: 0; }
+
+/* ---------- Thẻ "Game over" + phần thưởng ---------- */
+.ss-card,
+.ss-reward {
+  inset: 0;
+  z-index: 200;
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 12px;
+  text-align: center;
+  color: #fff;
+  background: rgba(40, 24, 56, 0.74);
+  backdrop-filter: blur(3px);
+  animation: ssFadeIn 0.35s ease;
+  &.is-hidden { display: none; }
+
+  h3 {
+    margin: 0;
+    font-family: 'Baloo 2', sans-serif;
+    font-size: 1.4rem;
+    font-weight: 800;
+  }
+  p {
+    margin: 0;
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 700;
+  }
+  .ss-card-actions {
+    display: flex;
+    gap: 10px;
+    a.hl-action-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      text-decoration: none;
+    }
+  }
+}
+
+.ss-reward-img {
+  max-width: 92%;
+  max-height: calc(100% - 64px);
+  border-radius: 14px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  animation: ssDevelop 0.8s ease;
+}
+
+.ss-photo-fab {
+  z-index: 150;
+  right: 10px;
+  bottom: 10px;
+  pointer-events: auto;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 999px;
+  background: #6c3f7c;
+  color: #fff;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(108, 63, 124, 0.4);
+  &.is-hidden { display: none; }
+}
+
+/* ---------- Keyframes ---------- */
+@keyframes ssMiss {
+  to { opacity: 0; filter: grayscale(1) blur(2px); }
+}
+@keyframes ssPop {
+  0%   { transform: scale(1.18); }
+  100% { transform: scale(1); }
+}
+@keyframes ssChipPulse {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.14); }
+}
+@keyframes ssReady {
+  0%, 100% { opacity: 0.55; }
+  50%      { opacity: 1; }
+}
+@keyframes ssFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes ssDevelop {
+  from { opacity: 0; transform: scale(0.9) rotate(-2deg); filter: blur(6px) brightness(1.6); }
+  to   { opacity: 1; transform: scale(1) rotate(0); filter: none; }
+}

@@ -108,6 +108,7 @@ export function initHandLab() {
     // Meme Search vừa được mở
     stopDetector(); // Dừng camera cũ
     if (targetTabId === "meme-search") {
+      setOnHandTracking(null); // Reset lại cấu hình nhận diện 2 tay
       await startDetector("meme-search");
       resetAutoScan();
     } else if (targetTabId === "snap-solve") {
@@ -134,34 +135,22 @@ export function initHandLab() {
     });
   });
 
-  // Nút CAPTURE VIBE
-//   const captureButton =
-//       document.querySelector(".hl-rescan-btn");
-
-//   if (captureButton) {
-//       captureButton.addEventListener(
-//           "click",
-//           async () => {
-//               await startMemeCaptureFlow();
-//           }
-//       );
-//   }
-
     // LẮNG NGHE SỰ KIỆN TỰ ĐỘNG CHỤP TỪ MEDIA PIPE
     setOnGestureStable(async () => {
         const activeTabBtn = document.querySelector(".hl-tab-btn.is-active");
         if (!activeTabBtn) return;
         const activeTab = activeTabBtn.dataset.tab;
-
+        
         if (activeTab === "meme-search") {
-            const resultsPanel = document.querySelector("#tab-meme-search .hl-results-panel");
-            if (window.getComputedStyle(resultsPanel).display === 'none') {
+            // Thay vì check bảng kết quả, ta check xem Overlay Quét có đang hiển thị không
+            const scanOverlay = document.querySelector("#tab-meme-search .hl-scan-overlay");
+            if (scanOverlay && window.getComputedStyle(scanOverlay).display !== 'none') {
                 await startMemeCaptureFlow();
             }
         } else if (activeTab === "snap-solve") {
-            const levelView = document.getElementById("hl-level-view");
-            if (window.getComputedStyle(levelView).display === 'none') {
-                await startPuzzleCaptureFlow(); // Gọi flow chụp ảnh xếp hình
+            const scanOverlay = document.querySelector("#tab-snap-solve .hl-scan-overlay");
+            if (scanOverlay && window.getComputedStyle(scanOverlay).display !== 'none') {
+                await startPuzzleCaptureFlow(); 
             }
         }
     });

@@ -234,7 +234,7 @@ function detectGesture(timestamp) {
         // 0° = tay thẳng đứng, + = nghiêng sang PHẢI trên màn hình (đã tính lật gương).
         const wrist = hand[0];
         const roll = Math.atan2(-(pointer.x - wrist.x), -(pointer.y - wrist.y)) * 180 / Math.PI;
-        onHandTrackingCallback(1 - pointer.x, pointer.y, currentGesture, roll);
+        onHandTrackingCallback(1 - pointer.x, pointer.y, currentGesture, roll, currentGestureScore);
     }
   } else {
     currentGesture = "None";
