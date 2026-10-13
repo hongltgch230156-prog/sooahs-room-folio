@@ -726,7 +726,7 @@
 
                     <!-- Khu vực chọn Level (Làm nền mờ để chuẩn bị cho tương lai) -->
                     <div class="puzzle-level-select">
-                      <div class="level-header">SELECT LEVEL <span>⭐ ⭐</span></div>
+                      <div class="level-header">SELECT LEVEL <span id="level-stars">⭐ 0/5</span></div>
                       <div class="level-dots">
                         <button class="level-arrow">❮</button>
                         <div class="level-dot is-active">1</div>
@@ -750,10 +750,7 @@
 
                 </div>
 
-                <button class="hl-action-btn hl-rescan-btn" id="btn-restart-puzzle" style="margin: 16px auto 0;">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
-                  PLAY AGAIN
-                </button>
+                <div class="puzzle-actions"> <button class="hl-action-btn hl-rescan-btn" id="btn-restart-puzzle"> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg> PLAY AGAIN </button> <button class="hl-action-btn hl-rescan-btn" id="btn-next-level" style="display:none;"> NEXT LEVEL <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:14px;"><polyline points="9 18 15 12 9 6"></polyline></svg> </button> </div>
               </div>
             </div>
 

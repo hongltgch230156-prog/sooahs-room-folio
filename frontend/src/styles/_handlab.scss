@@ -687,18 +687,51 @@
     justify-content: space-between;
     align-items: center;
     .level-arrow {
-      background: transparent; border: none; font-size: 1rem; color: rgba(108, 63, 124, 0.5); cursor: pointer;
+      background: transparent;
+      border: none;
+      font-size: 1rem;
+      color: rgba(108, 63, 124, 0.5);
+      cursor: pointer;
+      &:disabled {
+        opacity: 0.25;
+        cursor: default;
+      }
     }
     .level-dot {
-      width: 32px; height: 32px;
+      position: relative;
+      width: 32px;
+      height: 32px;
       border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      font-weight: 800; font-family: 'Baloo 2', sans-serif; font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-family: 'Baloo 2', sans-serif;
+      font-size: 0.9rem;
       border: 2px solid rgba(108, 63, 124, 0.1);
       color: rgba(108, 63, 124, 0.3);
+      cursor: pointer;
+      user-select: none;
+      transition: transform 0.15s ease, background 0.15s ease;
+
+      &:hover:not(.is-locked) { transform: scale(1.08); }
+
+      // đã hoàn thành (chưa chọn): chữ + viền đậm hơn, kèm dấu ✓ xanh
+      &.is-done { color: vars.$base-purple; border-color: rgba(108, 63, 124, 0.45); background: rgba(108, 63, 124, 0.1); }
+      &.is-done::after {
+        content: "✓";
+        position: absolute; top: -5px; right: -5px;
+        width: 14px; height: 14px; border-radius: 50%;
+        background: #4ade80; color: #fff;
+        font-size: 0.55rem; line-height: 14px; text-align: center;
+      }
+
       &.is-active { background: vars.$base-purple; color: #fff; border: none; box-shadow: 0 4px 10px rgba(108,63,124,0.3); }
+      &.is-locked { cursor: not-allowed; opacity: 0.7; }
+      &.is-shake { animation: levelShake 0.35s ease; }
     }
   }
+
 
   /* --- CỘT PHẢI (Bảng xếp hình) --- */
   .puzzle-board-container {
@@ -750,7 +783,13 @@
         transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1),
         filter 0.18s ease;
 
-    .puzzle-piece-svg { display: block; width: 100%; height: 100%; overflow: visible; }
+    .puzzle-piece-svg { 
+        display: block; 
+        width: 100%; 
+        height: 100%; 
+        overflow: visible;
+        transition: transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1); // <-- Thêm dòng này
+    }
 
     .p-3d { transition: opacity 0.35s ease; }
 
@@ -768,6 +807,22 @@
         //transform: translateY(-3px) scale(1.035);
         //filter: drop-shadow(0 6px 8px rgba(70, 48, 86, 0.25));
     }
+}
+
+@keyframes levelShake { 
+  0%, 100% { transform: translateX(0); } 
+  25% { transform: translateX(-4px); } 
+  75% { transform: translateX(4px); } 
+}
+
+.puzzle-actions { 
+  display: flex; 
+  justify-content: center; 
+  gap: 12px; 
+  margin-top: 16px; 
+  .hl-action-btn { 
+    margin: 0; 
+  } 
 }
 
 /* Con trỏ ảo AR chạy theo bàn tay */
