@@ -558,17 +558,23 @@
 /* =========================================
    SNAP & SOLVE - HAND TRACKING GAMEPLAY
    ========================================= */
+#tab-snap-solve {
+  padding-bottom: 4px; // Giảm khoảng trống thừa dưới đáy tab
+}
+
 .hl-puzzle-gameplay {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  flex: 1;          // Ép màn chơi kéo dài hết chiều cao còn lại của Modal
+  min-height: 0;
 }
 
 .puzzle-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-end;
-  margin-bottom: 12px;
+  align-items: center;
+  margin-bottom: 8px; // Thu gọn khoảng cách header
+  flex: 0 0 auto;
 }
 
 .puzzle-progress-wrap {
@@ -605,16 +611,17 @@
 
 .puzzle-layout {
   display: flex;
+  align-items: stretch; // Kéo cả cột trái và khung bảng bên phải cao bằng nhau
   gap: 16px;
   flex: 1;
   min-height: 0;
 
   /* --- CỘT TRÁI --- */
   .puzzle-left-col {
-    flex: 0 0 220px;
+    flex: 0 0 216px;
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 10px;
   }
 
   /* Khung Camera */
@@ -735,40 +742,38 @@
 
   /* --- CỘT PHẢI (Bảng xếp hình) --- */
   .puzzle-board-container {
-  flex: 1;
-  min-width: 0;
-  min-height: 0;
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 8px;
-  overflow: hidden;
-  border: 2px solid rgba(108, 63, 124, 0.38);
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.28);
-  box-shadow: inset 0 2px 8px rgba(60, 35, 70, 0.08);
-}
+    flex: 1;
+    min-width: 0;
+    min-height: clamp(460px, 60dvh, 560px); // Kéo dài card xếp hình xuống sát đáy modal
+    position: relative;
+    display: flex;
+    align-items: center;     // Căn giữa 12 mảnh ghép theo chiều dọc
+    justify-content: center; // Căn giữa 12 mảnh ghép theo chiều ngang
+    padding: 20px 32px;      // Khoảng đệm rộng rãi ở cả 4 phía
+    overflow: hidden;
+    border: 2px solid rgba(108, 63, 124, 0.38);
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.34);
+    box-shadow: inset 0 2px 10px rgba(60, 35, 70, 0.08);
+  }
 }
 
 
 .puzzle-board {
-    flex: 0 1 auto;
-    width: auto;
-    height: 100%;
-    max-width: 100%;
-    max-height: 100%;
-    aspect-ratio: 4 / 3;
-
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    grid-template-rows: repeat(3, minmax(0, 1fr));
-    gap: 0;
-
-    // Đừng cắt bóng và cạnh ghép ở mép ngoài
-    overflow: visible;
-    border-radius: 10px;
-    isolation: isolate;
+  flex: 0 1 auto;
+  width: auto;
+  height: 84%;       // Thu nhẹ từ 100% về 86% để cả tai ghép lồi ra lẫn icon đều nằm lọt thỏm giữa card
+  max-width: 92%;
+  max-height: 86%;
+  aspect-ratio: 4 / 3;
+  margin-top: -28px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-rows: repeat(3, minmax(0, 1fr));
+  gap: 0;
+  overflow: visible;
+  border-radius: 10px;
+  isolation: isolate;
 }
 
 .puzzle-piece {
@@ -817,12 +822,18 @@
 
 .puzzle-actions { 
   display: flex; 
-  justify-content: center; 
-  gap: 12px; 
-  margin-top: 16px; 
+  flex-direction: column; // Xếp dọc vừa khít độ rộng cột trái
+  gap: 8px; 
+  margin-top: 2px; 
+
   .hl-action-btn { 
+    width: 100%;
+    justify-content: center;
+    padding: 9px 14px;
+    border-radius: 12px;
+    font-size: 0.75rem;
     margin: 0; 
-  } 
+  }
 }
 
 /* Con trỏ ảo AR chạy theo bàn tay */
@@ -1208,4 +1219,242 @@
 @keyframes ssDevelop {
   from { opacity: 0; transform: scale(0.9) rotate(-2deg); filter: blur(6px) brightness(1.6); }
   to   { opacity: 1; transform: scale(1) rotate(0); filter: none; }
+}
+
+/* ===== HAND LAB – Snap & Solve: làm đẹp UI ===== */
+/* 2. Cột trái: rộng hơn, chữ đậm hơn */
+.puzzle-layout .puzzle-left-col { flex-basis: 250px; }
+.puzzle-layout .puzzle-cam-header,
+.puzzle-layout .cam-hint,
+.puzzle-layout .level-header { color: vars.$base-dark-purple; }
+.puzzle-layout .level-header span { color: #8a5a00; }
+.puzzle-layout .puzzle-cam-view { border-color: vars.$base-purple; }
+.puzzle-layout .puzzle-level-select {
+  background: #fff;
+  border: 2px solid vars.$base-purple;
+}
+
+/* 3. Select Level: nút to, level đang chọn có viền cam */
+.puzzle-layout .level-dots .level-arrow {
+  font-size: 1.4rem;
+  width: 32px;
+  height: 44px;
+  color: vars.$base-purple;
+}
+.puzzle-layout .level-dots .level-dot {
+  width: 44px;
+  height: 44px;
+  font-size: 1.1rem;
+  background: #fff;
+  color: vars.$base-dark-purple;
+  border: 2px solid vars.$base-purple;
+}
+.puzzle-layout .level-dots .level-dot.is-active {
+  background: vars.$base-purple;
+  color: #fff;
+  border-color: vars.$base-dark-purple;
+  box-shadow: 0 0 0 3px #f2a93b;
+}
+.puzzle-layout .level-dots .level-dot.is-locked {
+  background: rgba(108, 63, 124, 0.08);
+  border-style: dashed;
+  opacity: 1;
+}
+.puzzle-layout .level-dots .level-dot.is-done::after {
+  width: 18px;
+  height: 18px;
+  line-height: 18px;
+  font-size: 0.7rem;
+  top: -6px;
+  right: -6px;
+}
+
+/* 4. Progress (sau khi chuyển vào cột trái ở Bước 2) */
+.puzzle-progress-wrap {
+  width: 100%;
+  background: #fff;
+  border: 2px solid vars.$base-purple;
+  border-radius: 14px;
+  padding: 8px 12px;
+}
+.puzzle-progress-wrap .puzzle-progress-text {
+  color: vars.$base-dark-purple;
+  font-size: 0.85rem;
+}
+.puzzle-progress-wrap .puzzle-progress-bar {
+  height: 12px;
+  border-radius: 6px;
+}
+.puzzle-progress-wrap .puzzle-progress-fill { background: vars.$base-purple; }
+
+/* 5. Nút PLAY AGAIN: nút đặc, rộng hết cột */
+.puzzle-actions .hl-action-btn {
+  padding: 12px 14px;
+  font-size: 0.85rem;
+  background: vars.$base-purple;
+  color: #fff;
+  border-color: vars.$base-dark-purple;
+}
+.puzzle-actions .hl-action-btn:hover:not(:disabled) { background: vars.$base-dark-purple; }
+.puzzle-actions #btn-next-level {
+  background: #f2a93b;
+  color: vars.$base-dark-purple;
+  border-color: #c98512;
+}
+
+/* 6. Chip trạng thái cử chỉ trên webcam (HTML thêm ở Bước 2) */
+.gesture-chip {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  z-index: 11;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font: 800 0.65rem 'Nunito', sans-serif;
+  background: #fff;
+  color: vars.$base-dark-purple;
+}
+.gesture-chip[data-state="grab"] { background: #f2a93b; }
+.gesture-chip[data-state="open"] { background: vars.$base-purple; color: #fff; }
+
+/* ===== HAND LAB – sửa lần 2 ===== */
+
+/* A. Banner dạng viên thuốc: CHỈ hiện khi đang chơi (level view đang bật) */
+#tab-snap-solve:has(#hl-level-view[style*="flex"]) .hl-helper-text {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 44px;
+  margin: 0 0 10px;
+  padding: 6px 16px;
+  background: #fff;
+  border: 2px solid vars.$base-purple;
+  border-radius: 14px;
+  color: vars.$base-dark-purple;
+  font-size: 0.95rem;
+  font-weight: 800;
+}
+.hl-pill {
+  padding: 4px 16px;
+  border-radius: 999px;
+  font-weight: 900;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+.hl-pill--amber  { background: #f2a93b; color: vars.$base-dark-purple; }
+.hl-pill--purple { background: vars.$base-purple; color: #fff; }
+.hl-pill--soft   { background: rgba(108, 63, 124, 0.15); color: vars.$base-dark-purple; }
+
+/* B. Thu gọn cột trái cho vừa modal (giống mockup: không có chip WEBCAM) */
+.puzzle-layout .puzzle-cam-header { display: none; }
+.puzzle-layout .puzzle-cam-box { padding: 10px; gap: 6px; }
+.puzzle-layout .puzzle-cam-view { aspect-ratio: 4 / 3; }
+.puzzle-layout .level-header { margin-bottom: 8px; }
+
+/* C. Bỏ thanh scroll bên phải (vẫn cuộn được bằng chuột/vuốt ở tab Meme Search) */
+.hl-tab-content {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  padding-right: 0;
+}
+.hl-tab-content::-webkit-scrollbar { display: none; width: 0; }
+
+/* D. Tab SNAP & SOLVE / MEME SEARCH giống mockup */
+.hl-tabs-wrapper { background: #e2cdef; border-radius: 16px; padding: 6px; }
+.hl-tabs { gap: 8px; }
+.hl-tab-btn {
+  min-height: 40px;
+  border-radius: 12px;
+  color: vars.$base-purple;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 800;
+  font-size: 0.85rem;
+  letter-spacing: 0.06em;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.1s ease;
+}
+.hl-tab-btn .hl-tab-icon { display: none; }                 /* mockup không có icon */
+.hl-tab-btn:hover:not(.is-active) { background: rgba(255, 255, 255, 0.65); color: vars.$base-dark-purple; }
+.hl-tab-btn:active:not(.is-active) { background: rgba(255, 255, 255, 0.9); transform: scale(0.98); }
+.hl-tab-btn.is-active { background: vars.$base-purple; color: #fff; font-weight: 900; }
+.hl-tab-btn:focus-visible { outline: 3px solid #f2a93b; outline-offset: 2px; }
+
+/* ===== Level 3: bóng tối phủ kín cả card, không để phần lồi của mảnh ghép thò ra ===== */
+.ss-dark {
+  background: none;            // gradient cũ chuyển sang ::before bên dưới
+}
+.ss-dark::before {
+  content: "";
+  position: absolute;
+  inset: -400px;               // tràn ra mọi phía, card tự cắt vì có overflow: hidden
+  background: radial-gradient(
+    circle var(--sr) at calc(var(--sx) + 400px) calc(var(--sy) + 400px),  // +400px để bù phần tràn
+    rgba(28, 14, 46, 0) 0%,
+    rgba(28, 14, 46, 0) 58%,                                             // vùng sáng hẳn
+    rgba(28, 14, 46, 0.96) 100%                                          // viền mờ dần ra bóng tối
+  );
+}
+
+/* ===== Bố cục lưới: cột trái chạy từ trên cùng, banner chỉ dài bằng card bảng ghép ===== */
+#tab-snap-solve:has(#hl-level-view[style*="flex"]) {
+  display: grid;
+  grid-template-columns: 250px minmax(0, 1fr);   /* cột trái | cột phải */
+  grid-template-rows: auto minmax(0, 1fr);       /* hàng 1: banner, hàng 2: bảng ghép */
+  column-gap: 16px;
+}
+/* Gỡ 2 lớp bọc để cột trái và card bảng thành phần tử trực tiếp của lưới */
+#tab-snap-solve:has(#hl-level-view[style*="flex"]) .hl-puzzle-gameplay,
+#tab-snap-solve:has(#hl-level-view[style*="flex"]) .puzzle-layout {
+  display: contents !important;   /* !important vì JS gán display:flex inline */
+}
+/* Vị trí từng khối */
+#tab-snap-solve:has(#hl-level-view[style*="flex"]) .hl-helper-text {
+  grid-column: 2;
+  grid-row: 1;
+}
+#tab-snap-solve:has(#hl-level-view[style*="flex"]) .puzzle-left-col {
+  grid-column: 1;
+  grid-row: 1 / span 2;           /* kéo cột trái lên ngang hàng banner */
+}
+#tab-snap-solve:has(#hl-level-view[style*="flex"]) .puzzle-board-container {
+  grid-column: 2;
+  grid-row: 2;
+}
+/* Cột trái có thêm chỗ nên webcam cho vuông, cao hơn */
+.puzzle-layout .puzzle-cam-view { aspect-ratio: 1 / 1; }
+
+/* ===== Level 5: chip cử chỉ đẹp hơn, bỏ màu xanh lá ===== */
+.ss-chip {
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 2px 8px rgba(60, 35, 70, 0.3);
+}
+.ss-chip span {
+  display: flex;
+  width: 74%;
+  height: 74%;
+}
+.ss-chip span svg { width: 100%; height: 100%; }
+
+/* mảnh đã đúng chỗ, chờ làm cử chỉ */
+.ss-chip.is-ready {
+  box-shadow: 0 0 0 3px rgba(242, 169, 59, 0.95), 0 0 14px rgba(242, 169, 59, 0.75);
+}
+/* đang giữ cử chỉ: vòng tiến độ màu cam */
+.ss-chip.is-holding {
+  background: conic-gradient(#f2a93b var(--deg), rgba(255, 255, 255, 0.94) 0);
+}
+/* đã khóa: chip tím + ổ khóa trắng */
+.ss-chip.is-locked {
+  background: vars.$base-purple;
+  box-shadow: 0 0 0 3px #fff, 0 2px 10px rgba(108, 63, 124, 0.55);
+}
+.ss-chip.is-locked span { width: 56%; height: 56%; }
+
+/* viền trên chính mảnh ghép */
+.puzzle-piece.is-ready::after {
+  box-shadow: inset 0 0 0 2px rgba(242, 169, 59, 0.95);
+}
+.puzzle-piece.is-locked::after {
+  box-shadow: inset 0 0 0 2px rgba(108, 63, 124, 0.9), inset 0 0 16px rgba(108, 63, 124, 0.18);
 }

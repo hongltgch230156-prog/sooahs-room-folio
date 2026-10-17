@@ -696,20 +696,9 @@
 
               <!-- Giao diện Chơi Xếp Hình (Hiển thị sau khi chụp) -->
               <div class="hl-puzzle-gameplay" id="hl-level-view" style="display: none;">
-                
-                <!-- HEADER CHUNG (Progress & Helper text) -->
-                <div class="puzzle-header">
-                  <div class="puzzle-progress-wrap">
-                    <div class="puzzle-progress-text">Progress: <span id="puzzle-score">0</span>/12</div>
-                    <div class="puzzle-progress-bar">
-                      <div class="puzzle-progress-fill" id="puzzle-progress"></div>
-                    </div>
-                  </div>
-                </div>
-
                 <!-- BỐ CỤC 2 CỘT (Cam nhỏ bên trái, Bàn cờ bên phải) -->
                 <div class="puzzle-layout">
-                  
+
                   <!-- CỘT TRÁI -->
                   <div class="puzzle-left-col">
                     <div class="puzzle-cam-box" id="mini-cam-container">
@@ -720,11 +709,20 @@
                       <div class="puzzle-cam-view">
                         <video id="hl-webcam-mini" autoplay playsinline muted></video>
                         <canvas id="hl-canvas-mini" class="hl-canvas-overlay"></canvas>
+                        <div class="gesture-chip" id="gesture-chip" data-state="idle">Show your hand</div>
                       </div>
                       <div class="cam-hint">Hand Tracking Area</div>
                     </div>
 
-                    <!-- Khu vực chọn Level (Làm nền mờ để chuẩn bị cho tương lai) -->
+                    <!-- PROGRESS: nằm DƯỚI webcam, chỉ còn 1 card này -->
+                    <div class="puzzle-progress-wrap">
+                      <div class="puzzle-progress-text">Progress: <span id="puzzle-score">0</span>/12</div>
+                      <div class="puzzle-progress-bar">
+                        <div class="puzzle-progress-fill" id="puzzle-progress"></div>
+                      </div>
+                    </div>
+
+                    <!-- Khu vực chọn Level -->
                     <div class="puzzle-level-select">
                       <div class="level-header">SELECT LEVEL <span id="level-stars">⭐ 0/5</span></div>
                       <div class="level-dots">
@@ -735,22 +733,31 @@
                         <button class="level-arrow">❯</button>
                       </div>
                     </div>
+
+                    <!-- ĐƯA NÚT PLAY AGAIN VÀO ĐÂY (Nằm ngay dưới Select Level ở cột trái) -->
+                    <div class="puzzle-actions">
+                      <button class="hl-action-btn hl-rescan-btn" id="btn-restart-puzzle">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
+                        PLAY AGAIN
+                      </button>
+                      <button class="hl-action-btn hl-rescan-btn" id="btn-next-level" style="display:none;">
+                        NEXT LEVEL
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:14px;"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                      </button>
+                    </div>
                   </div>
 
                   <!-- CỘT PHẢI -->
                   <div class="puzzle-board-container" id="puzzle-board-container">
                     <div class="puzzle-board" id="puzzle-board"></div>
                     
-                    <!-- AR Cursor vòng tròn ngắm (Khóa chặt trong bảng 9 ô) -->
+                    <!-- AR Cursor vòng tròn ngắm -->
                     <div id="virtual-cursor" class="virtual-cursor">
                       <div class="cursor-ring"></div>
                       <div class="cursor-dot"></div>
                     </div>
                   </div>
-
                 </div>
-
-                <div class="puzzle-actions"> <button class="hl-action-btn hl-rescan-btn" id="btn-restart-puzzle"> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg> PLAY AGAIN </button> <button class="hl-action-btn hl-rescan-btn" id="btn-next-level" style="display:none;"> NEXT LEVEL <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:14px;"><polyline points="9 18 15 12 9 6"></polyline></svg> </button> </div>
               </div>
             </div>
 
