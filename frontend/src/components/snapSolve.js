@@ -1,6 +1,8 @@
 // frontend/src/components/snapSolve.js
 import { captureMemeSnapshot, resetAutoScan, setOnHandTracking } from "./memeDetector.js";
 import { readProgress, writeProgress, syncProgress } from "./gameProgress.js";
+import { icon as ic, POSE_SVG, LOCK_SVG, launchCelebration } from "./handlabIcons.js";
+let stopCelebration = null;
 
 function sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
@@ -172,11 +174,11 @@ const LEVELS = {
 
 // ---- Tinh chỉnh các level mới (đổi số ở đây để chỉnh độ khó) ----
 const LEVEL_PILLS = {
-    1: [{ t: "FIST = grab", c: "amber" }, { t: "OPEN PALM = drop", c: "purple" }],
-    2: [{ t: "FIST = grab", c: "amber" }, { t: "TILT WRIST = rotate", c: "soft" }, { t: "OPEN PALM = drop", c: "purple" }],
-    3: [{ t: "FIST = grab", c: "amber" }, { t: "OPEN PALM = drop", c: "purple" }, { t: "HOLD PALM 1s = big lamp", c: "soft" }],
-    4: [{ t: "FIST = catch", c: "amber" }, { t: "OPEN PALM = drop in its square", c: "purple" }],
-    5: [{ t: "FIST = grab", c: "amber" }, { t: "OPEN PALM = drop", c: "purple" }, { t: "POSE on square = lock", c: "soft" }]
+    1: [{ t: "FIST = grab", c: "amber", i: "fist" }, { t: "OPEN PALM = drop", c: "purple", i: "open_palm" }],
+    2: [{ t: "FIST = grab", c: "amber", i: "fist" }, { t: "TILT WRIST = rotate", c: "soft", i: "rotate" }, { t: "OPEN PALM = drop", c: "purple", i: "open_palm" }],
+    3: [{ t: "YOUR HAND = FLASHLIGHT", c: "soft", i: "flashlight" }, { t: "FIST = grab", c: "amber", i: "fist" }, { t: "OPEN PALM = drop", c: "purple", i: "open_palm" }, { t: "HOLD PALM 1s = big lamp", c: "soft", i: "bulb" }],
+    4: [{ t: "FIST = catch", c: "amber", i: "fist" }, { t: "OPEN PALM = drop in its square", c: "purple", i: "open_palm" }, { t: "CATCH FALLING PIECES", c: "soft", i: "basket" }],
+    5: [{ t: "FIST = grab", c: "amber", i: "fist" }, { t: "OPEN PALM = drop", c: "purple", i: "open_palm" }, { t: "POSE on square = lock", c: "soft", i: "lock" }]
 };
 const PREVIEW_MS          = 3000;  // L3 + L4: ảnh mẫu hiện 3 giây rồi tắt
 
@@ -207,30 +209,6 @@ const POSES = [
 ];
 
 // ===== Icon cử chỉ Level 5 (SVG, cùng tông tím với giao diện) =====
-const POSE_INK = "#6C3F7C", POSE_FILL = "#F6ECFB";
-const POSE_SVG = (() => {
-    const cx = [18.6, 25.2, 31.8, 38.4], W = 4.7;
-    const up   = (c, top) => `<rect x="${c - W / 2}" y="${top}" width="${W}" height="${30 - top}" rx="2.7"/>`;
-    const cur  = (c) => `<rect x="${c - W / 2}" y="19" width="${W}" height="11" rx="2.6"/>`;
-    const palm = (y = 22, h = 20) => `<rect x="16" y="${y}" width="25" height="${h}" rx="8"/>`;
-    const gaps = (xs) => xs.map((x) => `<path d="M${x} 21V26"/>`).join("");
-    const side = `<rect x="14.5" y="24" width="5.4" height="15" rx="2.7" transform="rotate(-42 17 38)"/>`;
-    const draw = (shapes, front = "", lines = "") =>
-        `<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">` +
-        `<g fill="${POSE_INK}" stroke="${POSE_INK}" stroke-width="4.4" stroke-linejoin="round">${shapes}</g>` +
-        `<g fill="${POSE_FILL}">${shapes}</g>` +
-        `<g fill="none" stroke="${POSE_INK}" stroke-width="1.6" stroke-linecap="round">${lines}</g>` +
-        `<g fill="${POSE_FILL}" stroke="${POSE_INK}" stroke-width="1.8" stroke-linejoin="round">${front}</g></svg>`;
-    const curled = cx.map(cur).join("");
-    return {
-        open_palm: draw(palm() + up(18.6, 8) + up(25.2, 4) + up(31.8, 7) + up(38.4, 12) + side),
-        fist:      draw(palm() + curled, `<rect x="17" y="28.5" width="17" height="6.4" rx="3.2"/>`, gaps([21.9, 28.5, 35.1])),
-        peace:     draw(palm() + up(18.6, 8) + up(25.2, 4) + cur(31.8) + cur(38.4), `<rect x="24" y="29" width="15" height="6" rx="3"/>`, gaps([35.1])),
-        thumbs_up: draw(palm(24, 18) + curled + `<rect x="14.5" y="5" width="6" height="26" rx="3"/>`, "", gaps([28.5, 35.1])),
-        love:      draw(palm() + up(18.6, 8) + cur(25.2) + cur(31.8) + up(38.4, 12) + side, "", gaps([28.5]))
-    };
-})();
-const LOCK_SVG = `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M8 11V8a4 4 0 0 1 8 0v3" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/><rect x="5.5" y="11" width="13" height="10" rx="3.2" fill="#fff"/><circle cx="12" cy="16" r="1.6" fill="${POSE_INK}"/></svg>`;
 const POSE_HOLD_MS   = 700;  // giữ đúng cử chỉ 0.7s liên tục mới khóa
 const POSE_MIN_SCORE = 0.6;  // độ tin cậy tối thiểu của MediaPipe
 
@@ -414,14 +392,24 @@ async function buildFramedPhoto(imageSrc, secs) {
 // ---------------------------------------------------------
 
 let currentPills = null;
+let flashToken = 0;
 function paintHint(el) {
+    el.classList.remove("is-win");
     if (currentPills) {
         el.innerHTML = currentPills
-            .map((p) => `<span class="hl-pill hl-pill--${p.c}">${p.t}</span>`)
+            .map((p) => `<span class="hl-pill hl-pill--${p.c}">${p.i ? ic(p.i) : ""}${p.t}</span>`)
             .join("");
     } else {
-        el.textContent = currentHint;
+        el.innerHTML = currentHint;
     }
+}
+function flashHint(html) {
+    const el = document.querySelector("#tab-snap-solve .hl-helper-text");
+    if (!el) return;
+    el.classList.remove("is-win");
+    el.innerHTML = html;
+    const token = ++flashToken;
+    setTimeout(() => { if (token === flashToken) paintHint(el); }, 1800);
 }
 function setHint(text, pills = null) {
     currentHint = text;
@@ -429,26 +417,21 @@ function setHint(text, pills = null) {
     const el = document.querySelector("#tab-snap-solve .hl-helper-text");
     if (el) paintHint(el);
 }
-function flashHint(text) {
-    const el = document.querySelector("#tab-snap-solve .hl-helper-text");
-    if (!el) return;
-    el.textContent = text;
-    setTimeout(() => {
-        if (el.textContent === text) paintHint(el);
-    }, 1800);
-}
+
 
 function renderLevelSelect() {
     const wrap = document.querySelector("#hl-level-view .level-dots");
     const stars = document.getElementById("level-stars");
-    if (stars) stars.textContent = `⭐ ${progress.completed.length}/${TOTAL_LEVELS}`;
+    if (stars) {
+        stars.innerHTML = `${ic("star")} ${progress.completed.length}/${TOTAL_LEVELS}`;
+    }
     if (!wrap) return;
 
     const pages = Math.ceil(TOTAL_LEVELS / LEVELS_PER_PAGE);
     const first = levelPage * LEVELS_PER_PAGE + 1;
     const last = Math.min(first + LEVELS_PER_PAGE - 1, TOTAL_LEVELS);
 
-    let html = `<button class="level-arrow" data-nav="-1" ${levelPage <= 0 ? "disabled" : ""}>❮</button>`;
+    let html = `<button class="level-arrow" data-nav="-1" ${levelPage <= 0 ? "disabled" : ""}>${ic("chevron-left")}</button>`;
     for (let id = first; id <= last; id++) {
         const playable = isPlayable(id);
         const cls = ["level-dot"];
@@ -460,9 +443,9 @@ function renderLevelSelect() {
             : !playable
                 ? `Complete level ${id - 1} first`
                 : LEVELS[id].name;
-        html += `<div class="level-dot ${cls.slice(1).join(" ")}" data-level="${id}" role="button" title="${title}">${playable ? id : "🔒"}</div>`;
+        html += `<div class="level-dot ${cls.slice(1).join(" ")}" data-level="${id}" role="button" title="${title}">${playable ? id : ic("lock")}</div>`;
     }
-    html += `<button class="level-arrow" data-nav="1" ${levelPage >= pages - 1 ? "disabled" : ""}>❯</button>`;
+    html += `<button class="level-arrow" data-nav="1" ${levelPage >= pages - 1 ? "disabled" : ""}>${ic("chevron-right")}</button>`;
     wrap.innerHTML = html;
 
     wrap.onclick = (e) => {
@@ -480,7 +463,11 @@ function renderLevelSelect() {
             dot.classList.remove("is-shake");
             void dot.offsetWidth;            // restart animation
             dot.classList.add("is-shake");
-            flashHint(!LEVELS[id] ? "✨ This level is coming soon!" : `🔒 Complete level ${id - 1} first!`);
+            flashHint(
+                !LEVELS[id]
+                    ? `${ic("sparkle")} This level is coming soon!`
+                    : `${ic("lock")} Complete level ${id - 1} first!`
+                );
             return;
         }
         if (currentImage) startPuzzleGame(currentImage, id);
@@ -529,7 +516,9 @@ export function startPuzzleGame(imageSrc, levelId) {
     window.__chipObs = new MutationObserver(() => {
     const grabbing = cursor.classList.contains("is-grabbing");
     chip.dataset.state = grabbing ? "grab" : "open";
-    chip.textContent = grabbing ? "✊ Holding piece" : "🖐️ Open palm";
+    chip.innerHTML = grabbing
+        ? `${ic("fist")} Holding piece`
+        : `${ic("open_palm")} Open palm`;
     });
     window.__chipObs.observe(cursor, { attributes: true, attributeFilter: ["class"] });
     const boardContainer = document.getElementById("puzzle-board-container");
@@ -676,7 +665,7 @@ export function startPuzzleGame(imageSrc, levelId) {
         previewEl.style.backgroundImage = `url("${imageSrc}")`;
         previewLabel = previewEl.firstElementChild;
         previewEnd = performance.now() + PREVIEW_MS;
-        setHint("👀 Memorize the picture!");
+        setHint(`${ic("eye")} Memorize the picture!`);
     }
     function endPreview() {
         phase = "play";
@@ -700,7 +689,7 @@ export function startPuzzleGame(imageSrc, levelId) {
     if (mode === "spotlight") {
         darkEl = addOverlay(el("div", "ss-extra ss-dark"));
         lampEl = addExtra(el("div", "ss-extra ss-lamp",
-            `<span>💡</span><div class="ss-lamp-bar"><i></i></div><span class="ss-lamp-txt"></span>`));
+            `<span>${ic("bulb")}</span><div class="ss-lamp-bar"><i></i></div><span class="ss-lamp-txt"></span>`));
         lampBar = lampEl.querySelector("i");
         lampTxt = lampEl.querySelector(".ss-lamp-txt");
     }
@@ -724,7 +713,7 @@ export function startPuzzleGame(imageSrc, levelId) {
                 if (holdPct >= 1) {
                     lampState = "on";
                     lampT0 = now;
-                    flashHint("💡 Lamp ON!");
+                    flashHint(`${ic("bulb")} Lamp ON!`);
                 }
             } else if (lampState === "on") {
                 if (now - lampT0 >= LAMP_ON_MS) { lampState = "cooldown"; lampT0 = now; }
@@ -746,7 +735,7 @@ export function startPuzzleGame(imageSrc, levelId) {
         let pct, txt;
         if (lampState === "ready") {
             pct = holdPct > 0 ? holdPct * 100 : 100;
-            txt = holdPct > 0 ? "Hold still…" : "Hold 🖐️ still";
+            txt = holdPct > 0 ? "Hold still…" : "Hold still";
         } else if (lampState === "on") {
             pct = 100 * (1 - (now - lampT0) / LAMP_ON_MS);
             txt = "LAMP ON!";
@@ -778,7 +767,11 @@ export function startPuzzleGame(imageSrc, levelId) {
         renderHud();
     }
     function renderHud() {
-        if (hudEl) hudEl.textContent = "❤️".repeat(lives) + "🖤".repeat(CATCH_LIVES - lives);
+        if (hudEl) {
+            hudEl.innerHTML =
+            ic("heart").repeat(lives) +
+            ic("heart-off").repeat(CATCH_LIVES - lives);
+        }
     }
     const fallSpeed = () => L.bh / Math.max(FALL_SECONDS_MIN, FALL_SECONDS_START - placed * FALL_RAMP);   // px/giây
 
@@ -855,15 +848,15 @@ export function startPuzzleGame(imageSrc, levelId) {
         lives--;
         renderHud();
         if (lives <= 0) gameOver();
-        else flashHint("💔 It hit the floor!");
+        else flashHint(`${ic("heart-crack")} It hit the floor!`);
     }
 
     function gameOver() {
         isGameOver = true;
         if (isGrabbing) cancelGrab();
         cursor.style.display = "none";
-        setHint("💥 Out of lives!");
-        showCard("💥 Out of lives!", `You placed ${placed}/${totalPieces} pieces.`, [
+        setHint(`${ic("heart-crack")} Out of lives!`);
+        showCard(`${ic("heart-crack")} Out of lives!`, `You placed ${placed}/${totalPieces} pieces.`, [
             { label: "TRY AGAIN", onClick: () => startPuzzleGame(currentImage, levelId) }
         ]);
     }
@@ -911,7 +904,7 @@ export function startPuzzleGame(imageSrc, levelId) {
         p.state = "bounce";
         p.vy = -Math.sqrt(2 * (L.bh * 4.5) * cellH * 0.9);   // bật lên ~0.9 ô
         p.vx = (Math.random() < 0.5 ? -1 : 1) * cellW * 2.2;
-        flashHint("❌ Wrong square — it bounced out!");
+        flashHint(`${ic("x-circle")} Wrong square — it bounced out!`);
     }
 
     // ---- Level 5: Pose Lock ----
@@ -976,7 +969,7 @@ export function startPuzzleGame(imageSrc, levelId) {
         chip.classList.remove("is-ready", "is-holding");
         chip.classList.add("is-locked");
         chip.firstElementChild.innerHTML = LOCK_SVG;
-        flashHint(`🔒 Locked! ${locked.filter(Boolean).length}/${totalPieces}`);
+        flashHint(`${ic("lock")} Locked! ${locked.filter(Boolean).length}/${totalPieces}`);
         updateProgress();
     }
 
@@ -995,10 +988,10 @@ export function startPuzzleGame(imageSrc, levelId) {
         rewardEl = addExtra(el("div", "ss-extra ss-reward", `
             <img class="ss-reward-img" src="${url}" alt="Your framed Pose Lock photo">
             <div class="ss-card-actions">
-                <a class="hl-action-btn hl-rescan-btn" href="${url}" download="handlab-pose-lock.png">⬇ SAVE PHOTO</a>
+                <a class="hl-action-btn hl-rescan-btn" href="${url}" download="handlab-pose-lock.png">${ic("download")} SAVE PHOTO</a>
                 <button class="hl-action-btn hl-rescan-btn" data-close>CLOSE</button>
             </div>`));
-        fabEl = addExtra(el("button", "ss-extra ss-photo-fab is-hidden", "🖼 PHOTO"));
+        fabEl = addExtra(el("button", "ss-extra ss-photo-fab is-hidden", `${ic("image")} PHOTO`));
         rewardEl.querySelector("[data-close]").onclick = () => {
             rewardEl.classList.add("is-hidden");
             fabEl.classList.remove("is-hidden");
@@ -1107,7 +1100,7 @@ export function startPuzzleGame(imageSrc, levelId) {
 
         if (phase === "preview") {
             const left = previewEnd - now;
-            if (previewLabel) previewLabel.textContent = `👀 Memorize it!  ${Math.max(1, Math.ceil(left / 1000))}`;
+            if (previewLabel) previewLabel.innerHTML = `${ic("eye")} Memorize it! ${Math.max(1, Math.ceil(left / 1000))}`;
             if (left <= 0) endPreview();
         }
 
@@ -1256,15 +1249,17 @@ export function startPuzzleGame(imageSrc, levelId) {
         saveProgress();
         renderLevelSelect();
 
-        let msg = `🎉 <strong>PERFECT! ${formatTime(secs)}</strong>`;
+        let msg = `${ic("party")} <strong>PERFECT! ${formatTime(secs)}</strong>`;
         if (prevBest != null) msg += isNewBest ? " · NEW BEST!" : ` · best ${formatTime(prevBest)}`;
-        msg += " 🎉";
+        msg += ` ${ic("party", "hl-flip")}`;
         const next = levelId + 1;
-        if (next <= TOTAL_LEVELS && !LEVELS[next]) msg += " ✨ More levels coming soon!";
-        if (mode === "pose") msg += " 📸 Your framed photo is ready!";
-        currentHint = `🎉 PERFECT! ${formatTime(secs)} 🎉`;
+        if (next <= TOTAL_LEVELS && !LEVELS[next]) msg += ` · ${ic("sparkle")} More levels coming soon!`;
+        if (mode === "pose") msg += ` · ${ic("camera")} Your framed photo is ready!`;
+        currentHint = `PERFECT! ${formatTime(secs)}`;
         currentPills = null;
-        if (helperText) helperText.innerHTML = msg;
+        flashToken++;                                   // huỷ hint đang chờ khôi phục
+        if (helperText) { helperText.innerHTML = msg; helperText.classList.add("is-win"); }
+        stopCelebration = launchCelebration(boardContainer);   // pháo giấy + pháo hoa
 
         if (nextBtn && isPlayable(next)) {
             nextBtn.style.display = "";
@@ -1283,6 +1278,7 @@ export function startPuzzleGame(imageSrc, levelId) {
         extras.forEach((n) => n.remove());
         if (rewardUrl) URL.revokeObjectURL(rewardUrl);
         cursor.classList.remove("is-grabbing");
+        if (stopCelebration) { stopCelebration(); stopCelebration = null; }
     }
     stopPrevGame = cleanup;
 
@@ -1298,6 +1294,7 @@ export function startPuzzleGame(imageSrc, levelId) {
         if (levelView) levelView.style.display = "none";
         const scanOverlay = document.querySelector("#tab-snap-solve .hl-scan-overlay");
         if (scanOverlay) scanOverlay.style.display = 'flex';
+        setHint("Use 2 hands to frame your face. Expand to capture.");
         resetAutoScan();
     };
 }
