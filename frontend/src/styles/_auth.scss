@@ -1,0 +1,410 @@
+/* =====================================================================
+   AUTH – Đăng nhập / Đăng ký (src/styles/_auth.scss)
+   Toàn bộ file là CSS thuần hợp lệ trong SCSS, không phụ thuộc mixin nào.
+   ===================================================================== */
+
+.auth-root {
+  --a-ink: #241d3a;
+  --a-muted: #6f6888;
+  --a-purple: #6f55bf;
+  --a-line: #d8d0e3;
+  --a-divider-bg: #fbf9fd;
+  --a-card: rgba(255, 255, 255, 0.84);
+  --a-card-line: rgba(205, 190, 228, 0.85);
+  --a-card-shadow: 0 30px 60px -22px rgba(76, 52, 120, 0.38), 0 2px 8px rgba(76, 52, 120, 0.08);
+  --a-field: rgba(255, 255, 255, 0.88);
+  --a-field-solid: #ffffff;
+  --a-field-line: #d3cbdc;
+  --a-field-ink: #2a2340;
+  --a-ph: #8d86a3;
+  --a-google: #efe9ef;
+  --a-google-line: #dbd2e2;
+  --a-google-hover: #e4d9f2;
+  --a-btn: linear-gradient(180deg, #7459c7, #6a4fba);
+  --a-btn-shadow: 0 10px 20px -10px rgba(111, 85, 191, 0.85);
+  --a-eye-bg: transparent;
+
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  overflow: hidden;
+  font-family: "Be Vietnam Pro", "Nunito", sans-serif;
+  color: var(--a-ink);
+  transition: opacity 0.7s ease;
+}
+.auth-root *,
+.auth-root *::before,
+.auth-root *::after { box-sizing: border-box; }
+
+.auth-root.is-dark {
+  --a-ink: #8c85ad;
+  --a-muted: #615b84;
+  --a-line: rgba(255, 255, 255, 0.1);
+  --a-divider-bg: #1b1634;
+  --a-card: rgba(24, 19, 46, 0.84);
+  --a-card-line: rgba(255, 255, 255, 0.09);
+  --a-card-shadow: 0 30px 70px -20px rgba(0, 0, 0, 0.6);
+  --a-field: rgba(255, 255, 255, 0.04);
+  --a-field-solid: #1c1738;
+  --a-field-line: rgba(255, 255, 255, 0.1);
+  --a-field-ink: #8f89b0;
+  --a-ph: #5d5780;
+  --a-google: rgba(255, 255, 255, 0.035);
+  --a-google-line: rgba(255, 255, 255, 0.09);
+  --a-google-hover: rgba(255, 255, 255, 0.06);
+  --a-btn: linear-gradient(180deg, #4c3f8a, #43377b);
+  --a-btn-shadow: none;
+  --a-eye-bg: rgba(255, 255, 255, 0.07);
+}
+
+/* ---------- nền (2 lớp crossfade) ---------- */
+.auth-bg { position: absolute; inset: 0; transition: opacity 0.9s ease; }
+.auth-bg-light {
+  background:
+    radial-gradient(ellipse at 70% 120%, rgba(190, 168, 222, 0.55), transparent 60%),
+    linear-gradient(180deg, #ffffff 0%, #f4eff9 38%, #d9cdea 100%);
+}
+.auth-bg-dark {
+  opacity: 0;
+  background:
+    radial-gradient(ellipse at 62% 28%, #4a3e88 0%, rgba(42, 35, 82, 0.9) 42%, transparent 75%),
+    linear-gradient(180deg, #231d48 0%, #1b1736 100%);
+}
+.auth-root.is-dark .auth-bg-dark { opacity: 1; }
+.auth-stars {
+  position: absolute; top: 0; left: 0; width: 2px; height: 2px; border-radius: 50%;
+  background: transparent; opacity: 0; transition: opacity 1.2s ease;
+  animation: auth-twinkle 5s ease-in-out infinite alternate;
+}
+.auth-root.is-dark .auth-stars { opacity: 0.9; }
+@keyframes auth-twinkle { from { opacity: 0.45; } to { opacity: 1; } }
+
+/* ---------- layout ---------- */
+.auth-layout {
+  position: absolute; inset: 0; display: flex; align-items: center;
+  padding: 24px 5vw 24px 8vw;
+}
+.auth-scene { flex: 1; min-width: 0; display: flex; justify-content: center; align-items: center; pointer-events: none; }
+.auth-scene-svg { height: min(92vh, 780px); width: auto; max-width: 100%; overflow: visible; }
+
+/* ---------- card ---------- */
+.auth-card {
+  position: relative; flex: 0 0 405px; width: 405px; max-width: 100%;
+  padding: 34px 30px 28px; border-radius: 30px;
+  background: var(--a-card); border: 1px solid var(--a-card-line);
+  box-shadow: var(--a-card-shadow);
+  -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);
+  transition: background-color 0.8s ease, border-color 0.8s ease, box-shadow 0.8s ease,
+              transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: auth-card-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes auth-card-in { from { opacity: 0; transform: translateY(18px) scale(0.985); } to { opacity: 1; transform: none; } }
+
+.auth-brand { display: flex; align-items: center; gap: 14px; }
+.auth-logo { width: 38px; height: 38px; flex: none; }
+.auth-brand-name {
+  font: 700 22px/1 "Poppins", "Be Vietnam Pro", sans-serif; letter-spacing: -0.01em; margin: 0;
+  color: var(--a-ink); transition: color 0.8s ease;
+}
+.auth-brand-tag {
+  margin: 7px 0 0; font-size: 10px; font-weight: 600; letter-spacing: 0.27em;
+  color: var(--a-muted); transition: color 0.8s ease;
+}
+
+/* ---------- mascot ---------- */
+.auth-mascot { position: relative; height: 80px; margin: 4px 0 2px; display: flex; justify-content: center; }
+.auth-mascot svg { position: absolute; bottom: -6px; width: 108px; height: 72px; overflow: visible; }
+.m-awake, .m-asleep { transition: opacity 0.6s ease; }
+.m-asleep { opacity: 0; }
+.auth-root.is-dark .m-awake { opacity: 0; }
+.auth-root.is-dark .m-asleep { opacity: 1; }
+.m-arm { transform-box: fill-box; transform-origin: 20% 90%; animation: auth-wave 1.1s ease-in-out infinite alternate; }
+@keyframes auth-wave { from { transform: rotate(-14deg); } to { transform: rotate(16deg); } }
+.m-zz { animation: auth-zz 2.4s ease-in-out infinite; }
+@keyframes auth-zz { 0%,100% { transform: translateY(0); opacity: 0.55; } 50% { transform: translateY(-4px); opacity: 1; } }
+
+.auth-group { position: relative; }
+.auth-owl {
+  position: absolute; left: 112px; top: -16px; width: 28px; height: 36px;
+  opacity: 0; transition: opacity 1s ease; pointer-events: none;
+}
+.auth-root.is-dark .auth-owl { opacity: 1; }
+
+/* ---------- Google / divider ---------- */
+.auth-google {
+  width: 100%; height: 46px; display: flex; align-items: center; justify-content: center; gap: 12px;
+  border: 1px solid var(--a-google-line); border-radius: 12px; background: var(--a-google);
+  color: var(--a-ink); font: 500 14.5px "Be Vietnam Pro", "Nunito", sans-serif; cursor: pointer;
+  transition: background-color 0.25s ease, border-color 0.8s ease, color 0.8s ease, transform 0.15s ease;
+}
+.auth-google:hover { background: var(--a-google-hover); }
+.auth-google:active { transform: scale(0.985); }
+.auth-google:disabled { opacity: 0.6; cursor: wait; }
+.auth-google svg { width: 18px; height: 18px; }
+
+.auth-divider { position: relative; margin: 22px 0 14px; text-align: center; height: 14px; }
+.auth-divider::before {
+  content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 1px;
+  background: var(--a-line); transition: background-color 0.8s ease;
+}
+.auth-divider span {
+  position: relative; padding: 0 12px; background: var(--a-divider-bg); border-radius: 8px;
+  font-size: 10px; font-weight: 600; letter-spacing: 0.22em; color: var(--a-muted);
+  transition: background-color 0.8s ease, color 0.8s ease;
+}
+
+/* ---------- form ---------- */
+.auth-form { display: block; }
+.auth-group { margin-bottom: 15px; }
+.auth-label-row { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 7px; }
+.auth-label { font-size: 13.5px; font-weight: 600; color: var(--a-ink); transition: color 0.8s ease; }
+.auth-forgot {
+  border: 0; background: none; padding: 0; cursor: pointer; font: 500 12px "Be Vietnam Pro", "Nunito", sans-serif;
+  color: var(--a-purple); transition: opacity 0.3s ease, visibility 0s linear 0s;
+}
+.auth-forgot:hover { text-decoration: underline; }
+.auth-root[data-mode="register"] .auth-forgot { opacity: 0; visibility: hidden; transition: opacity 0.25s ease, visibility 0s linear 0.25s; }
+
+.auth-field { position: relative; }
+.auth-input-icon {
+  position: absolute; left: 15px; top: 50%; width: 16px; height: 16px; transform: translateY(-50%);
+  color: var(--a-muted); pointer-events: none; z-index: 2; transition: color 0.8s ease;
+}
+.auth-input {
+  width: 100%; height: 46px; padding: 0 46px 0 42px; border-radius: 12px;
+  border: 1.5px solid var(--a-field-line); background: var(--a-field); color: var(--a-field-ink);
+  font: 400 14px "Be Vietnam Pro", "Nunito", sans-serif; outline: none;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease, background-color 0.8s ease, color 0.8s ease;
+}
+.auth-input::placeholder { color: var(--a-ph); }
+.auth-input[type="password"] { font-family: "JetBrains Mono", "Fira Code", ui-monospace, Menlo, Consolas, monospace; font-size: 13.5px; letter-spacing: 0.04em; }
+.auth-input:focus { border-color: #7d62cc; box-shadow: 0 0 0 4px rgba(125, 98, 204, 0.15); }
+.auth-field.is-invalid .auth-input { border-color: #d6536a; box-shadow: 0 0 0 4px rgba(214, 83, 106, 0.12); }
+
+.auth-reveal {
+  position: absolute; left: 1.5px; right: 44px; top: 1.5px; bottom: 1.5px; padding-left: 42px;
+  display: flex; align-items: center; white-space: pre; overflow: hidden; pointer-events: none;
+  background: var(--a-field-solid); color: #fff3dc; opacity: 0; z-index: 1; border-radius: 10px 0 0 10px;
+  font-family: "JetBrains Mono", "Fira Code", ui-monospace, Menlo, Consolas, monospace; font-size: 13.5px; letter-spacing: 0.04em;
+  transition: opacity 0.6s ease;
+}
+.auth-root.is-dark .auth-reveal { opacity: 1; }
+
+.auth-eye {
+  position: absolute; right: 7px; top: 50%; width: 32px; height: 32px; transform: translateY(-50%);
+  display: grid; place-items: center; border: 0; border-radius: 50%; cursor: pointer; z-index: 3;
+  background: var(--a-eye-bg); color: var(--a-muted);
+  transition: background-color 0.8s ease, color 0.3s ease, transform 0.2s ease;
+}
+.auth-eye:hover { color: var(--a-purple); }
+.auth-eye svg { width: 17px; height: 17px; }
+.auth-eye .ic-torch { display: none; }
+.auth-root.is-dark .auth-eye .ic-eye { display: none; }
+.auth-root.is-dark .auth-eye .ic-torch { display: block; }
+.auth-root.is-dark .auth-eye { color: #cdbff5; }
+.auth-eye::after {
+  content: attr(data-tip); position: absolute; top: -34px; right: -4px; padding: 5px 9px; border-radius: 8px;
+  background: #0f0c22; color: #e8defa; font: 500 11.5px "Be Vietnam Pro", sans-serif; white-space: nowrap;
+  opacity: 0; pointer-events: none; transform: translateY(4px); transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.auth-root.is-dark .auth-eye:hover::after,
+.auth-root.is-dark .auth-eye:focus-visible::after { opacity: 1; transform: none; }
+
+/* ô "Xác nhận mật khẩu" xổ ra khi chuyển sang đăng ký */
+.auth-collapse {
+  display: grid; grid-template-rows: 0fr; opacity: 0; visibility: hidden;
+  transition: grid-template-rows 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.35s ease, visibility 0s linear 0.5s;
+}
+.auth-collapse > .auth-collapse-inner { min-height: 0; overflow: hidden; padding: 0 4px; margin: 0 -4px; }
+.auth-root[data-mode="register"] .auth-collapse {
+  grid-template-rows: 1fr; opacity: 1; visibility: visible;
+  transition: grid-template-rows 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.45s ease 0.1s, visibility 0s;
+}
+
+.auth-error {
+  display: none; margin: 0 0 12px; padding: 9px 12px; border-radius: 10px; font-size: 12.5px; line-height: 1.45;
+  color: #c93a55; background: rgba(214, 83, 106, 0.09); border: 1px solid rgba(214, 83, 106, 0.28);
+}
+.auth-error.show { display: block; animation: auth-shake 0.4s ease; }
+.auth-error.is-info { color: #5b43a8; background: rgba(111, 85, 191, 0.09); border-color: rgba(111, 85, 191, 0.28); animation: none; }
+.auth-root.is-dark .auth-error { color: #ff97ab; }
+.auth-root.is-dark .auth-error.is-info { color: #b9a8f5; }
+@keyframes auth-shake { 20% { transform: translateX(-5px); } 40% { transform: translateX(5px); } 60% { transform: translateX(-3px); } 80% { transform: translateX(3px); } }
+
+.auth-submit {
+  position: relative; width: 100%; height: 46px; margin-top: 4px; border: 0; border-radius: 12px; cursor: pointer;
+  background: var(--a-btn); color: #fff; font: 700 14.5px "Be Vietnam Pro", "Nunito", sans-serif;
+  box-shadow: var(--a-btn-shadow);
+  transition: transform 0.2s ease, filter 0.2s ease, box-shadow 0.8s ease, background 0.8s ease, opacity 0.2s ease;
+}
+.auth-root.is-dark .auth-submit { color: #8f86c2; }
+.auth-submit:hover { transform: translateY(-1px); filter: brightness(1.06); }
+.auth-submit:active { transform: translateY(0) scale(0.99); }
+.auth-submit:disabled { opacity: 0.7; cursor: wait; transform: none; }
+.auth-submit.is-loading { color: transparent; }
+.auth-submit.is-loading::after {
+  content: ""; position: absolute; left: 50%; top: 50%; width: 18px; height: 18px; margin: -9px 0 0 -9px;
+  border-radius: 50%; border: 2.5px solid rgba(255, 255, 255, 0.4); border-top-color: #fff; animation: auth-spin 0.7s linear infinite;
+}
+@keyframes auth-spin { to { transform: rotate(360deg); } }
+
+.auth-switch { margin: 24px 0 0; text-align: center; font-size: 13.5px; color: var(--a-muted); transition: color 0.8s ease; }
+.auth-switch button {
+  border: 0; background: none; padding: 0; cursor: pointer; font: 600 13.5px "Be Vietnam Pro", "Nunito", sans-serif; color: var(--a-purple);
+}
+.auth-switch button:hover { text-decoration: underline; }
+
+/* ---------- đèn pin ---------- */
+.auth-beam { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 6; mix-blend-mode: screen; opacity: 0; transition: opacity 0.7s ease; }
+.auth-root.is-dark .auth-beam { opacity: 1; }
+
+/* ---------- hiệu ứng thoát sau khi đăng nhập ---------- */
+.auth-root.is-checking .auth-layout { opacity: 0; }
+.auth-root.is-leaving { opacity: 0; pointer-events: none; }
+.auth-root.is-leaving .auth-card { transform: translateY(-26px) scale(0.97); }
+
+/* ---------- responsive ---------- */
+@media (max-width: 900px) {
+  .auth-scene { display: none; }
+  .auth-layout { justify-content: center; padding: 16px; }
+  .auth-card { flex-basis: 420px; width: 100%; max-width: 420px; }
+}
+@media (max-width: 768px) {
+  .auth-logout-button { top: 30px; right: 174px; }
+  .auth-logout-svg { width: 30px; height: 30px; }
+}
+@media (max-height: 700px) {
+  .auth-layout { align-items: flex-start; overflow-y: auto; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .auth-root *, .auth-root *::before, .auth-root *::after { animation: none !important; transition-duration: 0.01s !important; }
+}
+
+/* ---------- cảnh minh họa isometric (sinh từ script) ---------- */
+.auth-scene-svg * { transition: fill 0.8s ease, stroke 0.8s ease, opacity 0.8s ease, filter 0.8s ease; }
+.auth-scene-svg .r-screen { fill: #bfe2f5; }
+.auth-root.is-dark .auth-scene-svg .r-screen { fill: #8fe2f7; }
+.auth-scene-svg .sc-wall { fill: #f7f4ef; }
+.auth-root.is-dark .auth-scene-svg .sc-wall { fill: #7d74c4; }
+.auth-scene-svg .sc-wall-r { fill: #e8e3db; }
+.auth-root.is-dark .auth-scene-svg .sc-wall-r { fill: #6d64b5; }
+.auth-scene-svg .sc-wall-top { fill: #ffffff; }
+.auth-root.is-dark .auth-scene-svg .sc-wall-top { fill: #9189d8; }
+.auth-scene-svg .sc-plat-top { fill: #f3eff8; }
+.auth-root.is-dark .auth-scene-svg .sc-plat-top { fill: #4c4189; }
+.auth-scene-svg .sc-plat-side { fill: #9b90a8; }
+.auth-root.is-dark .auth-scene-svg .sc-plat-side { fill: #2a2352; }
+.auth-scene-svg .i-top { fill: #a1d97d; }
+.auth-root.is-dark .auth-scene-svg .i-top { fill: #6cb46a; }
+.auth-scene-svg .i-side { fill: #5d9b46; }
+.auth-root.is-dark .auth-scene-svg .i-side { fill: #417d44; }
+.auth-scene-svg .i-lantern { fill: #c9c9d6; }
+.auth-root.is-dark .auth-scene-svg .i-lantern { fill: #ffe3a0; }
+.auth-scene-svg .r-bulb { fill: #f4dc9a; }
+.auth-root.is-dark .auth-scene-svg .r-bulb { fill: #ffe9a8; }
+.auth-scene-svg .r-floor { fill: #dcb386; }
+.auth-root.is-dark .auth-scene-svg .r-floor { fill: #896f6c; }
+.auth-scene-svg .r-floor-l { fill: #bf8f5f; }
+.auth-root.is-dark .auth-scene-svg .r-floor-l { fill: #795b56; }
+.auth-scene-svg .r-floor-r { fill: #a97d4f; }
+.auth-root.is-dark .auth-scene-svg .r-floor-r { fill: #6d514d; }
+.auth-scene-svg .r-beam-t { fill: #d1a06a; }
+.auth-root.is-dark .auth-scene-svg .r-beam-t { fill: #83645c; }
+.auth-scene-svg .r-beam-l { fill: #b9854f; }
+.auth-root.is-dark .auth-scene-svg .r-beam-l { fill: #75554d; }
+.auth-scene-svg .r-beam-r { fill: #9f703f; }
+.auth-root.is-dark .auth-scene-svg .r-beam-r { fill: #674a45; }
+.auth-scene-svg .r-wood-t { fill: #c58d57; }
+.auth-root.is-dark .auth-scene-svg .r-wood-t { fill: #7c5a52; }
+.auth-scene-svg .r-wood-l { fill: #a87240; }
+.auth-root.is-dark .auth-scene-svg .r-wood-l { fill: #6c4b45; }
+.auth-scene-svg .r-wood-r { fill: #8f5f33; }
+.auth-root.is-dark .auth-scene-svg .r-wood-r { fill: #5e403e; }
+.auth-scene-svg .r-desk-t { fill: #c58d57; }
+.auth-root.is-dark .auth-scene-svg .r-desk-t { fill: #7c5a52; }
+.auth-scene-svg .r-desk-l { fill: #a87240; }
+.auth-root.is-dark .auth-scene-svg .r-desk-l { fill: #6c4b45; }
+.auth-scene-svg .r-desk-r { fill: #8f5f33; }
+.auth-root.is-dark .auth-scene-svg .r-desk-r { fill: #5e403e; }
+.auth-scene-svg .r-leg-t { fill: #8a5b30; }
+.auth-root.is-dark .auth-scene-svg .r-leg-t { fill: #5c3e3c; }
+.auth-scene-svg .r-leg-l { fill: #7a4f29; }
+.auth-root.is-dark .auth-scene-svg .r-leg-l { fill: #533839; }
+.auth-scene-svg .r-leg-r { fill: #68431f; }
+.auth-root.is-dark .auth-scene-svg .r-leg-r { fill: #493133; }
+.auth-scene-svg .r-metal-t { fill: #cdd0d6; }
+.auth-root.is-dark .auth-scene-svg .r-metal-t { fill: #807f98; }
+.auth-scene-svg .r-metal-l { fill: #b4b8bf; }
+.auth-root.is-dark .auth-scene-svg .r-metal-l { fill: #73718b; }
+.auth-scene-svg .r-metal-r { fill: #999ea8; }
+.auth-root.is-dark .auth-scene-svg .r-metal-r { fill: #64637e; }
+.auth-scene-svg .r-key-t { fill: #8e939d; }
+.auth-root.is-dark .auth-scene-svg .r-key-t { fill: #5e5d78; }
+.auth-scene-svg .r-key-l { fill: #7b808a; }
+.auth-root.is-dark .auth-scene-svg .r-key-l { fill: #53536e; }
+.auth-scene-svg .r-key-r { fill: #6a6f79; }
+.auth-root.is-dark .auth-scene-svg .r-key-r { fill: #4a4965; }
+.auth-scene-svg .r-chair-t { fill: #9d83de; }
+.auth-root.is-dark .auth-scene-svg .r-chair-t { fill: #66549c; }
+.auth-scene-svg .r-chair-l { fill: #8368cc; }
+.auth-root.is-dark .auth-scene-svg .r-chair-l { fill: #584592; }
+.auth-scene-svg .r-chair-r { fill: #6f55b8; }
+.auth-root.is-dark .auth-scene-svg .r-chair-r { fill: #4d3b87; }
+.auth-scene-svg .r-lamp-t { fill: #80858f; }
+.auth-root.is-dark .auth-scene-svg .r-lamp-t { fill: #565571; }
+.auth-scene-svg .r-lamp-l { fill: #686d79; }
+.auth-root.is-dark .auth-scene-svg .r-lamp-l { fill: #494865; }
+.auth-scene-svg .r-lamp-r { fill: #555a64; }
+.auth-root.is-dark .auth-scene-svg .r-lamp-r { fill: #3e3e59; }
+.auth-scene-svg .r-frame { fill: #ecaacd; }
+.auth-root.is-dark .auth-scene-svg .r-frame { fill: #916a93; }
+.auth-scene-svg .r-frame-in { fill: #c7a3ea; }
+.auth-root.is-dark .auth-scene-svg .r-frame-in { fill: #7d66a3; }
+.auth-scene-svg .i-rock { fill: #a39a9a; }
+.auth-root.is-dark .auth-scene-svg .i-rock { fill: #696177; }
+.auth-scene-svg .i-bush { fill: #8bc46b; }
+.auth-root.is-dark .auth-scene-svg .i-bush { fill: #5c785d; }
+.auth-scene-svg .i-stone { fill: #c9c9cf; }
+.auth-root.is-dark .auth-scene-svg .i-stone { fill: #7e7b94; }
+.auth-scene-svg .i-pole { fill: #4a4a5a; }
+.auth-root.is-dark .auth-scene-svg .i-pole { fill: #383554; }
+.auth-scene-svg .i-cap { fill: #1f1f26; }
+.auth-root.is-dark .auth-scene-svg .i-cap { fill: #211d37; }
+.auth-scene-svg .i-base { fill: #3a3a45; }
+.auth-root.is-dark .auth-scene-svg .i-base { fill: #302c48; }
+.auth-scene-svg .i-flag { fill: #6f55bf; }
+.auth-root.is-dark .auth-scene-svg .i-flag { fill: #4d3b8b; }
+.auth-scene-svg .i-fence { fill: #b98349; }
+.auth-root.is-dark .auth-scene-svg .i-fence { fill: #75544a; }
+.auth-scene-svg .s-pole { fill: #b57a3c; }
+.auth-root.is-dark .auth-scene-svg .s-pole { fill: #734f43; }
+.auth-scene-svg .s-pole-cap { fill: #a06a30; }
+.auth-root.is-dark .auth-scene-svg .s-pole-cap { fill: #68473c; }
+.auth-scene-svg .s-bar { fill: #b57a3c; }
+.auth-root.is-dark .auth-scene-svg .s-bar { fill: #734f43; }
+.auth-scene-svg .sc-wall, .auth-scene-svg .sc-wall-r, .auth-scene-svg .sc-wall-top { fill-opacity: 0.9; }
+.auth-root.is-dark .auth-scene-svg .sc-wall, .auth-root.is-dark .auth-scene-svg .sc-wall-r, .auth-root.is-dark .auth-scene-svg .sc-wall-top { fill-opacity: 0.55; }
+.auth-scene-svg .sc-plat-top { stroke: #e0d6ea; stroke-width: 2; }
+.auth-root.is-dark .auth-scene-svg .sc-plat-top { stroke: #6256ab; }
+.auth-scene-svg .sc-shadow { fill: rgba(86, 66, 120, 0.16); }
+.auth-root.is-dark .auth-scene-svg .sc-shadow { fill: rgba(0, 0, 0, 0.32); }
+.auth-scene-svg .i-shadow { fill: rgba(40, 40, 40, 0.22); }
+.auth-scene-svg .r-rug { fill: #c9876f; fill-opacity: 0.28; }
+.auth-root.is-dark .auth-scene-svg .r-rug { fill: #3a2040; fill-opacity: 0.35; }
+.auth-scene-svg .r-plank { stroke: #c39a6c; stroke-width: 1.4; }
+.auth-root.is-dark .auth-scene-svg .r-plank { stroke: #6f5240; }
+.auth-scene-svg .r-wire { stroke: #b9955c; stroke-width: 1.3; }
+.auth-root.is-dark .auth-scene-svg .r-wire { stroke: #8a7550; }
+.auth-root.is-dark .auth-scene-svg .r-bulb { filter: drop-shadow(0 0 4px #ffd27a); }
+.auth-scene-svg .r-book-t { fill: var(--b); } .auth-scene-svg .r-book-l { fill: var(--b); filter: brightness(0.9); } .auth-scene-svg .r-book-r { fill: var(--b); filter: brightness(0.74); }
+.auth-root.is-dark .auth-scene-svg .r-book-t { filter: brightness(0.6); } .auth-root.is-dark .auth-scene-svg .r-book-l { filter: brightness(0.52); } .auth-root.is-dark .auth-scene-svg .r-book-r { filter: brightness(0.42); }
+.auth-root.is-dark .auth-scene-svg .r-octo { filter: brightness(0.62); }
+.auth-root.is-dark .auth-scene-svg .r-screen { filter: drop-shadow(0 0 8px rgba(140, 226, 247, 0.7)); }
+.auth-root.is-dark .auth-scene-svg .i-lantern { filter: drop-shadow(0 0 10px #ffd27a); }
+.auth-scene-svg .s-sign { fill: #faeede; stroke: #b57a3c; stroke-width: 4; }
+.auth-root.is-dark .auth-scene-svg .s-sign { fill: #392b5b; stroke: #8b5f3b; }
+.auth-scene-svg .s-text { fill: #5a4a3a; font: 800 12.5px "Poppins", "Be Vietnam Pro", sans-serif; letter-spacing: 0.18em; }
+.auth-root.is-dark .auth-scene-svg .s-text { fill: #f6e8cc; }
+.auth-scene-svg .sc-glow { opacity: 0; }
+.auth-root.is-dark .auth-scene-svg .sc-glow { opacity: 1; }
+.auth-stars { box-shadow: 673px 318px 0 rgba(255,244,225,0.9), 1343px 108px 0 rgba(255,244,225,0.35), 1691px 202px 0 rgba(255,244,225,0.7), 1203px 128px 0 rgba(255,244,225,0.5), 86px 186px 0 rgba(255,244,225,0.9), 866px 153px 0 rgba(255,244,225,0.5), 195px 879px 0 rgba(255,244,225,0.35), 1703px 263px 0 rgba(255,244,225,0.5), 1301px 136px 0 rgba(255,244,225,0.9), 111px 462px 0 rgba(255,244,225,0.35), 1150px 282px 0 rgba(255,244,225,0.7), 868px 305px 0 rgba(255,244,225,0.35), 1179px 641px 0 rgba(255,244,225,0.5), 221px 394px 0 rgba(255,244,225,0.7), 209px 138px 0 rgba(255,244,225,0.35), 1277px 431px 0 rgba(255,244,225,0.9), 1403px 885px 0 rgba(255,244,225,0.7), 963px 938px 0 rgba(255,244,225,0.7), 623px 518px 0 rgba(255,244,225,0.5), 1441px 509px 0 rgba(255,244,225,0.35), 1186px 624px 0 rgba(255,244,225,0.9), 1802px 713px 0 rgba(255,244,225,0.9), 599px 159px 0 rgba(255,244,225,0.35), 1058px 866px 0 rgba(255,244,225,0.5), 1560px 710px 0 rgba(255,244,225,0.5), 1011px 873px 0 rgba(255,244,225,0.35), 1378px 168px 0 rgba(255,244,225,0.7), 706px 727px 0 rgba(255,244,225,0.9), 1197px 944px 0 rgba(255,244,225,0.35), 1730px 201px 0 rgba(255,244,225,0.7), 980px 143px 0 rgba(255,244,225,0.35), 1507px 644px 0 rgba(255,244,225,0.9), 592px 800px 0 rgba(255,244,225,0.7), 56px 955px 0 rgba(255,244,225,0.7), 354px 249px 0 rgba(255,244,225,0.9), 130px 456px 0 rgba(255,244,225,0.7), 274px 517px 0 rgba(255,244,225,0.9), 810px 1026px 0 rgba(255,244,225,0.35), 350px 929px 0 rgba(255,244,225,0.9), 1135px 579px 0 rgba(255,244,225,0.5), 1687px 891px 0 rgba(255,244,225,0.7), 1456px 860px 0 rgba(255,244,225,0.7), 1408px 789px 0 rgba(255,244,225,0.5), 319px 179px 0 rgba(255,244,225,0.5), 319px 485px 0 rgba(255,244,225,0.5), 34px 1003px 0 rgba(255,244,225,0.5), 548px 587px 0 rgba(255,244,225,0.35), 308px 868px 0 rgba(255,244,225,0.7), 1258px 662px 0 rgba(255,244,225,0.5), 1424px 120px 0 rgba(255,244,225,0.9), 1852px 813px 0 rgba(255,244,225,0.9), 827px 817px 0 rgba(255,244,225,0.35), 996px 830px 0 rgba(255,244,225,0.35), 400px 147px 0 rgba(255,244,225,0.5), 912px 342px 0 rgba(255,244,225,0.35), 706px 117px 0 rgba(255,244,225,0.35), 10px 319px 0 rgba(255,244,225,0.35), 754px 62px 0 rgba(255,244,225,0.35), 1800px 435px 0 rgba(255,244,225,0.9), 314px 526px 0 rgba(255,244,225,0.7), 1243px 755px 0 rgba(255,244,225,0.9), 261px 246px 0 rgba(255,244,225,0.9), 964px 993px 0 rgba(255,244,225,0.9), 648px 185px 0 rgba(255,244,225,0.5), 219px 711px 0 rgba(255,244,225,0.7), 990px 340px 0 rgba(255,244,225,0.35), 430px 750px 0 rgba(255,244,225,0.5), 1423px 65px 0 rgba(255,244,225,0.7), 1326px 196px 0 rgba(255,244,225,0.7), 1071px 761px 0 rgba(255,244,225,0.5); }

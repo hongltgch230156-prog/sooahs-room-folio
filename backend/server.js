@@ -1,3 +1,4 @@
+require('dns').setServers(['8.8.8.8', '1.1.1.1']);
 const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
@@ -6,10 +7,24 @@ const sharp = require('sharp');
 const { fal } = require("@fal-ai/client");
 const { GoogleGenAI } = require("@google/genai");
 
+const mongoose = require('mongoose');
+const authRoutes = require('./routes/authRoutes');
+const { requireAuth } = require('./middleware/auth');
+
+const accountRoutes = require('./routes/accountRoutes');
+const storage = require('./utils/storage');
+const { trackModelTask, finalizeModelTask } = require('./utils/modelTasks');
+
 dotenv.config();
 const gemini = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY,
 });
+
+mongoose
+  .connect(process.env.MONGO_URI)
+  .then(() => console.log('MongoDB đã kết nối'))
+  .catch((err) => { console.error('Lỗi kết nối MongoDB:', err.message); process.exit(1); });
+
 const app = express();
 
 // Cho phép Frontend (chạy trên port 5173) gọi API tới Backend (chạy trên port 3000)
@@ -17,6 +32,13 @@ app.use(cors());
 //app.use(express.json());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
+
+app.use('/files', express.static(storage.STORAGE_DIR, { index: false, dotfiles: 'deny', maxAge: '7d' }));
+
+app.use('/api/auth', authRoutes); // đăng ký / đăng nhập / google / me (không cần token)
+app.use('/api', requireAuth);     // tất cả API còn lại BẮT BUỘC có token
+
+app.use('/api/account', accountRoutes); // trang Account: model 3D + ảnh 2D của user
 
 // Lưu file ảnh tạm vào bộ nhớ RAM (memoryStorage) để chuyển tiếp đi ngay
 const upload = multer({ storage: multer.memoryStorage() });
@@ -106,6 +128,14 @@ app.post('/api/create-task', upload.fields([{ name: 'source', maxCount: 1 }, { n
     const { request_id } = await fal.queue.submit(endpoint, {
       input: trellisInput
     });
+
+    // Ghi lại model này cho trang Account (không bao giờ ném lỗi)
+    await trackModelTask(req.user._id, request_id, {
+      kind: mode === 'multiple' ? 'scene' : 'single',
+      name: sourceFile.originalname,
+      thumbBuffer: finalBuffer,
+    });
+
     res.json({ code: 0, data: { task_id: request_id } });
   } catch (error) {
     console.error("Lỗi Create Task:", error);
@@ -141,6 +171,8 @@ app.get('/api/task-status/:taskId', async (req, res) => {
             if (glbMatch) fileUrl = glbMatch[0];
         }
         responseData.data.output = { model: fileUrl };
+        // Lưu vào tài khoản + tải file .glb về server (chạy nền, không chặn phản hồi)
+        if (fileUrl) finalizeModelTask(req.user._id, taskId, fileUrl);
     }
     res.json(responseData);
   } catch (error) {
@@ -401,6 +433,11 @@ app.post('/api/magic-wand/create', async (req, res) => {
     });
 
     console.log(`[Magic Wand] Đã gửi vật thể sang Trellis-2: ${request_id}`);
+    await trackModelTask(req.user._id, request_id, {
+      kind: 'magic',
+      name: 'Magic Wand object',
+      thumbUrl: isolatedImageUrl,
+    });
     res.json({ code: 0, data: { task_id: request_id } });
   } catch (error) {
     console.error("Lỗi tạo model Magic Wand:", error);

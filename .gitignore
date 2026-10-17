@@ -26,3 +26,5 @@ dist-ssr
 frontend/public/models/
 /backend/.env
 /frontend/.env
+
+backend/storage/

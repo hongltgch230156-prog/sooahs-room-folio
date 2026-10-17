@@ -1089,6 +1089,19 @@ export function initForge() {
     window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
 
+  // Lưu bản sao ảnh 2D vào tài khoản (trang Account > My 2D Exports). Lỗi ở đây không được làm hỏng việc export.
+  const saveExportToAccount = async (blob, kind) => {
+    try {
+      const formData = new FormData();
+      formData.append("image", blob, kind === "ai-style" ? "style.jpg" : "render.png");
+      formData.append("kind", kind);
+      const res = await fetch("http://localhost:3000/api/account/exports", { method: "POST", body: formData });
+      if (!res.ok) console.warn("[Account] Could not save export:", res.status);
+    } catch (error) {
+      console.warn("[Account] Could not save export:", error);
+    }
+  };
+
   const exportModel = async (format) => {
     forgeExportOptions.forEach((option) => {
       const isSelected = option.dataset.format === format;
@@ -1197,6 +1210,7 @@ export function initForge() {
 
       if (mode === "direct") {
         downloadExport(renderBlob, "png", "image/png", "3d-forge-render.png");
+        saveExportToAccount(renderBlob, "render");
       } else {
         const formData = new FormData();
         formData.append("source", currentFileToUpload, currentFileToUpload.name || "source-image");
@@ -1214,6 +1228,7 @@ export function initForge() {
 
         const imageBlob = await response.blob();
         downloadExport(imageBlob, "jpg", "image/jpeg", "3d-forge-style-reconstruction.jpg");
+        saveExportToAccount(imageBlob, "ai-style"); 
       }
 
       if (forgeExport2DStatus) forgeExport2DStatus.hidden = true;

@@ -12,6 +12,8 @@ import { initForge } from "./components/forge.js";
 import { MascotController } from "./components/MascotController.js";
 import { ChatbotUI } from "./components/ChatbotUI.js";
 import { initHandLab } from "./components/handlab.js";
+import { initAuth } from "./components/auth.js";
+initAuth();
 
 /** -------------------------- Audio setup -------------------------- */
 
@@ -2038,7 +2040,7 @@ function handleRaycasterInteraction() {
     const hitbox = currentIntersects[0].object;
 
     const object = hitboxToObjectMap.get(hitbox);
-
+    console.log("Clicked:", object.name);
     if (object.name.includes("Button")) {
       buttonSounds.click.play();
     }
@@ -2079,6 +2081,14 @@ function handleRaycasterInteraction() {
       showModal(modals.about);
     } else if (object.name.includes("Contact_Button")) {
       showModal(modals.contact);
+    }
+
+    if (object.name.includes("Contact_Button_Third_Raycaster_Pointer_Hover")) {
+      const handLabModal = document.querySelector(".hand-lab-modal");
+      if (handLabModal) {
+        showModal(handLabModal);
+        initHandLab();
+      }
     }
   }
 }
@@ -2395,7 +2405,7 @@ muteToggleButton.addEventListener(
 );
 
 initForge();
-initHandLab();
+//initHandLab();
 
 // Themeing stuff
 

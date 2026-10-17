@@ -10,8 +10,13 @@ import {
   DrawingUtils
 } from "@mediapipe/tasks-vision";
 
-const VISION_WASM_URL =
-  "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm";
+// const VISION_WASM_URL =
+//   "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm";
+
+const VISION_WASM_URL = new URL(
+  "../../node_modules/@mediapipe/tasks-vision/wasm",
+  import.meta.url
+).href;
 
 const GESTURE_MODEL_URL =
   "https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/1/gesture_recognizer.task";
@@ -67,6 +72,7 @@ const STABLE_DURATION = 700;
  * Khởi tạo MediaPipe
  */
 async function initializeMediaPipe() {
+  if (gestureRecognizer && faceLandmarker) return;
   const vision = await FilesetResolver.forVisionTasks(
     VISION_WASM_URL
   );

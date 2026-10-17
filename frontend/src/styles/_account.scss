@@ -1,0 +1,647 @@
+/* =========================================
+   ACCOUNT – nút trên thanh góc phải + trang hồ sơ
+   File: src/styles/_account.scss  (thêm  @use "./styles/account.scss";  vào style.scss)
+   Màu lấy theo bảng màu light/dark của web; theme đọc từ class
+   .light-theme / .dark-theme (giống mixin themed() trong style.scss).
+   ========================================= */
+
+/* ---------- Nút Account (thay nút Logout cũ: cùng vị trí right: 248px) ---------- */
+// Khung/viền/nền đã có sẵn từ class .toggle-buttons -> tự đổi theo sáng/tối như 2 nút bên cạnh.
+.account-button {
+  position: fixed;
+  top: 36px;
+  right: 248px;
+  z-index: 2;
+  cursor: pointer;
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  &:hover { transform: rotate(-5deg) scale(1.3); }
+  &:focus-visible { outline: 3px solid #a58cea; outline-offset: 3px; }
+}
+.account-svg {
+  width: 40px;
+  height: 40px;
+  fill: #6e5e9c;                         // sáng: icon tím trên nền tím nhạt
+  transition: fill 0.3s ease;
+}
+.dark-theme .account-svg { fill: #e6dede; }   // tối: icon sáng trên nền tối
+@media (max-width: 768px) {
+  .account-button { top: 30px; right: 174px; }
+  .account-svg { width: 30px; height: 30px; }
+}
+
+/* ---------- Bảng màu (CSS variables) ---------- */
+.account-root {
+  --acc-accent: #6e5e9c;
+  --acc-accent-2: #8f7dd0;
+  --acc-title: #6c3f7c;
+  --acc-text: #2f2142;
+  --acc-muted: rgba(47, 33, 66, 0.6);
+  --acc-line: rgba(110, 94, 156, 0.28);
+  --acc-surface: rgba(255, 255, 255, 0.55);
+  --acc-chip: rgba(110, 94, 156, 0.14);
+  --acc-card-bg: linear-gradient(160deg, rgba(246, 240, 255, 0.93), rgba(231, 219, 248, 0.9));
+  --acc-border: #8a73d6;
+  --acc-glow: rgba(138, 115, 214, 0.28);
+  --acc-backdrop: rgba(32, 32, 32, 0.2);
+  --acc-danger: #c0453f;
+  --acc-ok: #3f9d6b;
+}
+.dark-theme .account-root {
+  --acc-accent: #b9a6ea;
+  --acc-accent-2: #7b57b8;
+  --acc-title: #e6dede;
+  --acc-text: #e6dede;
+  --acc-muted: rgba(230, 222, 222, 0.62);
+  --acc-line: rgba(185, 166, 234, 0.25);
+  --acc-surface: rgba(255, 255, 255, 0.06);
+  --acc-chip: rgba(185, 166, 234, 0.16);
+  --acc-card-bg: linear-gradient(160deg, rgba(64, 29, 73, 0.95), rgba(42, 15, 78, 0.95));
+  --acc-border: #7a5fb0;
+  --acc-glow: rgba(122, 95, 176, 0.35);
+  --acc-backdrop: rgba(0, 0, 0, 0.6);
+  --acc-danger: #ff8b84;
+  --acc-ok: #7fdca8;
+}
+
+/* ---------- Khung modal ---------- */
+.account-root {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  font-family: 'Nunito', sans-serif;
+  color: var(--acc-text);
+
+  &.is-open { display: flex; }
+
+  .account-backdrop {
+    position: absolute;
+    inset: 0;
+    background: var(--acc-backdrop);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    animation: accFade 0.2s ease both;
+  }
+  &.is-closing .account-backdrop { animation: accFade 0.18s ease reverse both; }
+  &.is-closing .account-card { animation: accOut 0.18s ease both; }
+}
+
+.account-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: min(660px, 100%);
+  max-height: calc(100dvh - 32px);
+  border-radius: 24px;
+  border: 2px solid var(--acc-border);
+  background: var(--acc-card-bg);
+  backdrop-filter: blur(18px) saturate(1.2);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+  box-shadow: 0 0 0 5px var(--acc-glow), 0 28px 70px rgba(40, 20, 80, 0.4);
+  animation: accIn 0.28s cubic-bezier(0.2, 0.9, 0.3, 1.1) both;
+  overflow: hidden;
+}
+
+.account-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 22px 26px 6px;
+
+  h2 {
+    margin: 0;
+    font-family: 'Baloo 2', 'Nunito', sans-serif;
+    font-size: 1.9rem;
+    font-weight: 800;
+    line-height: 1.1;
+    color: var(--acc-title);
+  }
+}
+.account-close {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: none;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--acc-title);
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+  .acc-ic { width: 26px; height: 26px; stroke-width: 2.4; }
+  &:hover { background: var(--acc-chip); transform: rotate(90deg); }
+}
+
+.account-scroll {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 10px 26px 26px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--acc-accent) transparent;
+}
+
+.acc-ic { width: 20px; height: 20px; flex: none; }
+
+/* ---------- Hồ sơ ---------- */
+.account-profile {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+.account-avatar {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 3px solid #fff;
+  background: linear-gradient(145deg, #b9a6ea, #7b57b8);
+  box-shadow: 0 0 0 3px var(--acc-accent), 0 8px 18px rgba(80, 50, 140, 0.35);
+  img { width: 100%; height: 100%; object-fit: cover; }
+  span {
+    font-family: 'Baloo 2', sans-serif;
+    font-size: 2.1rem;
+    font-weight: 800;
+    color: #fff;
+    text-shadow: 0 2px 6px rgba(60, 30, 110, 0.4);
+  }
+}
+.account-info { min-width: 0; flex: 1; }
+.account-name {
+  margin: 0;
+  font-size: 1.6rem;
+  font-weight: 800;
+  line-height: 1.2;
+  color: var(--acc-title);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.account-name-input,
+.account-rename-input {
+  width: 100%;
+  padding: 6px 12px;
+  border: 2px solid var(--acc-accent);
+  border-radius: 12px;
+  background: var(--acc-surface);
+  color: var(--acc-text);
+  font: inherit;
+  font-weight: 800;
+  outline: none;
+  &:focus { box-shadow: 0 0 0 3px var(--acc-glow); }
+}
+.account-name-input { font-size: 1.3rem; }
+.account-email {
+  margin: 2px 0 10px;
+  font-size: 1.02rem;
+  color: var(--acc-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.account-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.account-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 16px;
+  border: 1.5px solid var(--acc-line);
+  border-radius: 999px;
+  background: var(--acc-chip);
+  color: var(--acc-title);
+  font-family: inherit;
+  font-size: 0.98rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.2s ease, border-color 0.2s ease;
+  .acc-ic { width: 18px; height: 18px; }
+  &:hover { transform: translateY(-1px); border-color: var(--acc-accent); }
+  &:active { transform: translateY(0); }
+  &.is-ghost { background: transparent; color: var(--acc-muted); }
+  &.is-ghost:hover { color: var(--acc-danger); border-color: var(--acc-danger); }
+}
+
+/* ---------- Thống kê ---------- */
+.account-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  padding: 14px 0;
+  border: 1.5px solid var(--acc-line);
+  border-radius: 20px;
+  background: var(--acc-surface);
+}
+.account-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  & + & { border-left: 1.5px solid var(--acc-line); }
+  strong {
+    font-family: 'Baloo 2', sans-serif;
+    font-size: 2rem;
+    font-weight: 800;
+    line-height: 1.1;
+    color: var(--acc-title);
+  }
+  span { font-size: 0.98rem; font-weight: 700; color: var(--acc-muted); }
+}
+
+/* ---------- Tabs ---------- */
+.account-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  border: 1.5px solid var(--acc-line);
+  border-radius: 18px;
+  background: var(--acc-surface);
+}
+.account-tab {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 11px 10px;
+  border: none;
+  border-radius: 14px;
+  background: transparent;
+  color: var(--acc-muted);
+  font-family: inherit;
+  font-size: 1.05rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 0.25s ease, color 0.25s ease, box-shadow 0.25s ease;
+  .acc-ic { width: 22px; height: 22px; }
+  &:hover:not(.is-active) { background: var(--acc-chip); }
+  &.is-active {
+    color: #fff;
+    background: linear-gradient(135deg, var(--acc-accent-2), #6e5e9c);
+    box-shadow: 0 6px 14px rgba(110, 94, 156, 0.4);
+  }
+  &:focus-visible { outline: 3px solid var(--acc-accent); outline-offset: 2px; }
+}
+
+/* ---------- Lưới các mục ---------- */
+.account-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  &.is-empty { display: block; }
+}
+.account-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px;
+  border: 1.5px solid var(--acc-line);
+  border-radius: 18px;
+  background: var(--acc-surface);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  &:hover { transform: translateY(-2px); border-color: var(--acc-accent); box-shadow: 0 8px 18px rgba(80, 50, 140, 0.18); }
+}
+.account-thumb {
+  aspect-ratio: 1.2;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--acc-chip);
+  img { display: block; width: 100%; height: 100%; object-fit: cover; }
+}
+.account-item-name {
+  margin: 6px 0 0;
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--acc-title);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.account-rename-input { margin-top: 6px; padding: 4px 8px; font-size: 0.95rem; border-radius: 10px; }
+.account-item-date { margin: 0 0 6px; font-size: 0.9rem; color: var(--acc-muted); }
+.account-item-actions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin-top: auto;
+
+  button {
+    display: grid;
+    place-items: center;
+    height: 34px;
+    border: 1.5px solid var(--acc-line);
+    border-radius: 11px;
+    background: var(--acc-chip);
+    color: var(--acc-accent);
+    font-family: inherit;
+    font-size: 0.78rem;
+    font-weight: 800;
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease, transform 0.15s ease;
+    .acc-ic { width: 18px; height: 18px; }
+    &:hover { background: var(--acc-accent); color: #fff; transform: translateY(-1px); }
+    &:focus-visible { outline: 2px solid var(--acc-accent); outline-offset: 1px; }
+    &.is-confirm { background: var(--acc-danger); border-color: var(--acc-danger); color: #fff; }
+  }
+}
+
+.account-item.is-skeleton {
+  pointer-events: none;
+  i {
+    display: block;
+    height: 12px;
+    margin-top: 8px;
+    border-radius: 6px;
+    background: var(--acc-chip);
+    &.short { width: 55%; }
+  }
+  .account-thumb, i {
+    background-image: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.45), transparent);
+    background-size: 200% 100%;
+    animation: accShimmer 1.2s linear infinite;
+  }
+}
+
+.account-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 26px 16px;
+  border: 2px dashed var(--acc-line);
+  border-radius: 18px;
+  text-align: center;
+  color: var(--acc-muted);
+  font-weight: 700;
+  .acc-ic { width: 34px; height: 34px; color: var(--acc-accent); }
+  p { margin: 0; max-width: 340px; }
+}
+
+/* ---------- Snap & Solve (tiến độ game trong Hand Lab) ---------- */
+.account-game {
+  padding: 14px 16px;
+  border: 1.5px solid var(--acc-line);
+  border-radius: 20px;
+  background: var(--acc-surface);
+}
+.account-game-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.account-game-stars {
+  flex: none;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: var(--acc-chip);
+  border: 1.5px solid var(--acc-line);
+  color: var(--acc-title);
+  font-family: 'Baloo 2', sans-serif;
+  font-size: 1.15rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.account-levels {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+.account-level {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 4px;
+  border: 1.5px dashed var(--acc-line);
+  border-radius: 14px;
+  text-align: center;
+  color: var(--acc-muted);
+
+  .account-level-no {
+    display: grid;
+    place-items: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--acc-chip);
+    font-size: 0.85rem;
+    font-weight: 800;
+  }
+  .account-level-name {
+    max-width: 100%;
+    font-size: 0.72rem;
+    font-weight: 800;
+    line-height: 1.15;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .account-level-time {
+    font-family: 'Baloo 2', sans-serif;
+    font-size: 1rem;
+    font-weight: 800;
+  }
+
+  &.is-done {
+    border-style: solid;
+    border-color: var(--acc-accent);
+    background: var(--acc-chip);
+    color: var(--acc-title);
+    .account-level-no {
+      background: linear-gradient(135deg, #ffd666, #f5a524);
+      color: #fff;
+      text-shadow: 0 1px 2px rgba(120, 70, 0, 0.4);
+    }
+  }
+}
+
+/* ---------- Plan & Billing ---------- */
+.account-plan {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border: 1.5px solid var(--acc-line);
+  border-radius: 20px;
+  background: var(--acc-surface);
+}
+.account-plan-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  border: 1.5px solid var(--acc-line);
+  background: var(--acc-chip);
+  color: var(--acc-accent);
+  .acc-ic { width: 26px; height: 26px; }
+}
+.account-plan-text { flex: 1; min-width: 0; }
+.account-plan-title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--acc-title);
+}
+.account-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--acc-chip);
+  color: var(--acc-accent);
+  font-size: 0.75rem;
+  font-weight: 800;
+  vertical-align: middle;
+}
+.account-plan-sub { margin: 2px 0 0; font-size: 0.88rem; color: var(--acc-muted); }
+.account-upgrade {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border: none;
+  border-radius: 14px;
+  background: var(--acc-chip);
+  color: var(--acc-muted);
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 800;
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+
+/* ---------- Xem trước (ảnh / model 3D) ---------- */
+.account-viewer {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  &[hidden] { display: none; }
+
+  .account-viewer-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(24, 12, 44, 0.55);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    animation: accFade 0.2s ease both;
+  }
+}
+.account-viewer-box {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(760px, 100%);
+  max-height: calc(100dvh - 32px);
+  margin: 0;
+  padding: 14px 16px 12px;
+  border: 2px solid var(--acc-border);
+  border-radius: 22px;
+  background: var(--acc-card-bg);
+  box-shadow: 0 0 0 5px var(--acc-glow), 0 28px 70px rgba(40, 20, 80, 0.45);
+  animation: accIn 0.25s cubic-bezier(0.2, 0.9, 0.3, 1.1) both;
+}
+.account-viewer-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.account-viewer-title {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-family: 'Baloo 2', 'Nunito', sans-serif;
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--acc-title);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.account-viewer-stage {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  max-height: calc(100dvh - 150px);
+  width: 100%;
+  border-radius: 16px;
+  overflow: hidden;
+  background: radial-gradient(circle at 50% 35%, rgba(255, 255, 255, 0.7), var(--acc-chip));
+  display: grid;
+  place-items: center;
+
+  img { display: block; width: 100%; height: 100%; object-fit: contain; }
+  .account-viewer-canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; }
+  .account-viewer-canvas:active { cursor: grabbing; }
+}
+.account-viewer-msg { font-weight: 800; color: var(--acc-muted); }
+.account-viewer-hint {
+  min-height: 1.1em;
+  text-align: center;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--acc-muted);
+}
+
+/* ---------- Toast ---------- */
+.account-toast {
+  position: absolute;
+  left: 50%;
+  bottom: 16px;
+  max-width: calc(100% - 32px);
+  padding: 9px 18px;
+  border-radius: 999px;
+  background: #3c2a5e;
+  color: #fff;
+  font-size: 0.92rem;
+  font-weight: 700;
+  opacity: 0;
+  transform: translate(-50%, 12px);
+  pointer-events: none;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  &.is-show { opacity: 1; transform: translate(-50%, 0); }
+  &.is-error { background: #b3382f; }
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 560px) {
+  .account-head { padding: 18px 18px 4px; }
+  .account-scroll { padding: 8px 18px 20px; gap: 14px; }
+  .account-profile { gap: 14px; }
+  .account-avatar { width: 76px; height: 76px; }
+  .account-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .account-plan { flex-wrap: wrap; }
+  .account-levels { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .account-game-head { flex-wrap: wrap; }
+  .account-viewer { padding: 8px; }
+  .account-upgrade { width: 100%; justify-content: center; }
+  .account-stat strong { font-size: 1.6rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .account-root *, .account-button { animation: none !important; transition-duration: 0.01s !important; }
+}
+
+/* ---------- Keyframes ---------- */
+@keyframes accFade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes accIn {
+  from { opacity: 0; transform: translateY(16px) scale(0.96); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes accOut {
+  from { opacity: 1; transform: none; }
+  to   { opacity: 0; transform: translateY(10px) scale(0.97); }
+}
+@keyframes accShimmer { to { background-position: -200% 0; } }

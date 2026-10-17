@@ -7,6 +7,8 @@
 @use "./styles/forge.scss";
 @use "./styles/chatbot.scss";
 @use "./styles/handlab.scss";
+@use "./styles/auth.scss";
+@use "./styles/account.scss";
 
 $themes: (
   light: (

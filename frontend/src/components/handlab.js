@@ -5,6 +5,7 @@ import {
     stopDetector,
     captureMemeSnapshot,
     setOnGestureStable,
+    setOnHandTracking,
     resetAutoScan
 } from "./memeDetector.js";
 
@@ -148,8 +149,8 @@ export function initHandLab() {
                 await startMemeCaptureFlow();
             }
         } else if (activeTab === "snap-solve") {
-            const scanOverlay = document.querySelector("#tab-snap-solve .hl-scan-overlay");
-            if (scanOverlay && window.getComputedStyle(scanOverlay).display !== 'none') {
+            const snapView = document.getElementById("hl-snap-view");
+            if (snapView && window.getComputedStyle(snapView).display !== 'none') {
                 await startPuzzleCaptureFlow(); 
             }
         }

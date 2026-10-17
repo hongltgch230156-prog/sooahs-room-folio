@@ -1,5 +1,6 @@
 // frontend/src/components/snapSolve.js
 import { captureMemeSnapshot, resetAutoScan, setOnHandTracking } from "./memeDetector.js";
+import { readProgress, writeProgress, syncProgress } from "./gameProgress.js";
 
 function sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
@@ -182,7 +183,7 @@ const LAMP_COOLDOWN_MS    = 9000;  // hồi chiêu 9s
 // Level 4 - Catch & Build
 const CATCH_LIVES         = 5;     // số mạng (mảnh chạm đáy = mất 1 mạng)
 const CATCH_MAX_ACTIVE    = 3;     // tối đa 3 mảnh rơi cùng lúc
-const FALL_SECONDS_START  = 15;     // lúc đầu 1 mảnh rơi hết chiều cao bảng trong 9s
+const FALL_SECONDS_START  = 9;     // lúc đầu 1 mảnh rơi hết chiều cao bảng trong 9s
 const FALL_SECONDS_MIN    = 5.5;   // rơi nhanh dần tới mức này
 const FALL_RAMP           = 0.3;   // mỗi mảnh ghép đúng rút ngắn thêm 0.3s
 const SPAWN_GAP_START     = 2600;  // ms giữa 2 mảnh được thả xuống
@@ -200,29 +201,14 @@ const POSES = [
 const POSE_HOLD_MS   = 700;  // giữ đúng cử chỉ 0.7s liên tục mới khóa
 const POSE_MIN_SCORE = 0.6;  // độ tin cậy tối thiểu của MediaPipe
 
-const STORAGE_KEY = "handlab.snapSolve.progress.v1";
-
-function loadProgress() {
-    try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        const p = raw ? JSON.parse(raw) : null;
-        if (p && Array.isArray(p.completed)) {
-            return {
-                completed: p.completed.filter((n) => Number.isInteger(n)),
-                best: p.best && typeof p.best === "object" ? p.best : {}
-            };
-        }
-    } catch (e) { /* localStorage bị chặn / JSON hỏng -> bỏ qua */ }
-    return { completed: [], best: {} };
-}
+// Tiến độ theo TỪNG TÀI KHOẢN (đọc/ghi + đồng bộ server nằm trong gameProgress.js)
+let progress = readProgress();
 
 function saveProgress() {
-    try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
-    } catch (e) { /* ignore */ }
+    writeProgress(progress);
+    syncProgress();            // đẩy lên server (không chờ, không chặn game)
 }
 
-let progress = loadProgress();
 let selectedLevel = null;     // level đang chơi
 let levelPage = 0;            // trang của thanh chọn level
 let currentImage = null;      // ảnh vừa chụp (đổi level không cần chụp lại)
@@ -461,6 +447,10 @@ let stopPrevGame = null;   // dọn game cũ trước khi mở game mới
 
 export function startPuzzleGame(imageSrc, levelId) {
     if (stopPrevGame) stopPrevGame();
+
+    // Đọc lại tiến độ của tài khoản đang đăng nhập + kéo bản mới nhất từ server (đổi máy vẫn còn)
+    progress = readProgress();
+    syncProgress().then((p) => { progress = p; renderLevelSelect(); });
 
     currentImage = imageSrc;
     if (levelId == null) levelId = selectedLevel;
