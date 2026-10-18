@@ -145,58 +145,39 @@ async init() {
     if (!this.mascot) return;
     this.introTimeline = gsap.timeline();
 
-    // Lựa chọn dáng đi ra tùy theo character
-    let introWalkAction = "happy_walk";
-    switch(this.charId) {
-      case 1: introWalkAction = "happy_walk"; break;
-      case 2: introWalkAction = "northern_soul_floor_spin"; break;
-      case 3: introWalkAction = "catwalk_walk_forward"; break;
-      case 4: introWalkAction = "push_up"; break;
-      case 5: introWalkAction = "swagger_walk"; break;
-    }
+    // Đưa mascot đến thẳng vị trí ngó ra ban đầu (peekPos) ngay từ đầu mà không cần đi bộ tới
+    this.mascot.position.set(this.peekPos.x, this.peekPos.y, this.peekPos.z);
+    this.mascot.rotation.y = -Math.PI / 4 + this.rotOffset;
 
-    this.fadeToAction(introWalkAction, 0.2); 
-
-    // Bước 1: Bước dọc theo bức tường ra phía trước
-    this.introTimeline.to(this.mascot.position, {
-      x: this.peekPos.x,
-      z: this.peekPos.z,
-      duration: 1.5,
-      ease: "power1.out",
-      onComplete: () => {
-        // Bước 2: Dừng lại, xoay mặt ra màn hình (camera) và làm hành động chào
-        gsap.to(this.mascot.rotation, { y: -Math.PI / 4 + this.rotOffset, duration: 0.3 });
-        
-        // ---- PHÂN NHÁNH HÀNH ĐỘNG CHÀO THEO CHAR ID ----
-        switch(this.charId) {
-          case 1: this.fadeToAction("waving_gesture", 0.5); break;
-          case 2: this.fadeToAction("waving", 0.5); break;
-          case 3: 
-            this.fadeToAction("catwalk_walk_stop_twist_L", 0.3);
-            setTimeout(() => this.fadeToAction("blow_a_kiss", 0.3), 1500);
-            break;
-          case 4: 
-            this.fadeToAction("push_up_to_idle", 0.3);
-            setTimeout(() => this.fadeToAction("salute", 0.3), 1000);
-            break;
-          case 5: 
-            this.fadeToAction("slide_hip_hop_dance", 0.3);
-            setTimeout(() => this.fadeToAction("pointing_gesture", 0.3), 1500);
-            break;
-        }
+    // Bước 1: Thực hiện hành động chào luôn tại chỗ tùy theo character
+    this.introTimeline.add(() => {
+      switch(this.charId) {
+        case 1: this.fadeToAction("waving_gesture", 0.5); break;
+        case 2: this.fadeToAction("waving", 0.5); break;
+        case 3: this.fadeToAction("rumba_dancing", 0.3); break;
+        case 4: 
+          this.fadeToAction("push_up_to_idle", 0.3);
+          setTimeout(() => this.fadeToAction("salute", 0.3), 1000);
+          break;
+        case 5: this.fadeToAction("slide_hip_hop_dance", 0.3); break;
       }
     })
-    // Giữ màn chào hỏi trong 3 giây (tăng lên 3s vì các char 3, 4, 5 có combo dài)
+    // Giữ màn chào hỏi trong 3.5 giây
     .to({}, { duration: 3.5 }) 
     .add(() => {
-      // Bước 3: Chuyển sang đi bộ, xoay mặt hướng chéo ra góc ngoài
-      this.fadeToAction(introWalkAction, 0.3);
+      // Bước 2: Xoay mặt hướng chéo ra góc ngoài trước khi di chuyển về vị trí chốt
       gsap.to(this.mascot.rotation, {
         y: Math.PI / 4 + this.rotOffset, 
         duration: 0.5
       });
+      // Nếu muốn mascot đi bộ về vị trí chốt, bật lại animation đi bộ tương ứng
+      let walkAction = "happy_walk";
+      if (this.charId === 2) walkAction = "northern_soul_floor_spin";
+      if (this.charId === 3) walkAction = "catwalk_walk_forward";
+      if (this.charId === 4) walkAction = "push_up";
+      this.fadeToAction(walkAction, 0.3);
     })
-    // Bước 4: Di chuyển chéo ra vị trí chốt
+    // Bước 3: Di chuyển chéo ra vị trí chốt cuối cùng
     .to(this.mascot.position, {
       x: this.finalPos.x,
       y: this.finalPos.y,
@@ -204,7 +185,7 @@ async init() {
       duration: 1.5,
       ease: "power1.inOut",
       onComplete: () => {
-        // Bước 5: Đến nơi, xoay mặt nhìn thẳng vào mắt người dùng và vào trạng thái chờ
+        // Bước 4: Đến nơi, xoay mặt nhìn thẳng vào màn hình và vào trạng thái chờ
         gsap.to(this.mascot.rotation, {
           y: -Math.PI / 4 + this.rotOffset, 
           duration: 0.5
@@ -248,14 +229,7 @@ async init() {
         this.fadeToAction("walk_in_circle", 0.5); 
         break;
       case 5: 
-        // Char 5 có 2 bước: lắc đầu rồi mới focus
-        this.fadeToAction("thoughtful_head_shake", 0.5);
-        // Sau 1.5s chuyển sang focus
-        this.actionTimer = setTimeout(() => { 
-          if(this.currentAction === this.actions["thoughtful_head_shake"]) {
-            this.fadeToAction("focus", 0.5); 
-          }
-        }, 1500);
+        this.fadeToAction("focus", 0.5); 
         break;
     }
   }
@@ -270,28 +244,57 @@ async init() {
   }
 
   // =======================================================
-  // 5. TRẠNG THÁI CHỐT CÂU TRẢ LỜI (Đổi tên từ setClapping cho tổng quát)
+  // 5. TRẠNG THÁI CHỐT CÂU TRẢ LỜI
   // =======================================================
   setFinishTalking() {
     this.clearTimers();
-    switch(this.charId) {
-      case 1: this.fadeToAction("clapping", 0.3); break;
-      case 2: this.fadeToAction("clapping", 0.3); break;
-      case 3: this.fadeToAction("clapping", 0.3); break;
-      case 4: this.fadeToAction("hands_forward_gesture", 0.3); break;
-      case 5: this.fadeToAction("pointing_gesture", 0.3); break;
-    }
     
-    // Tạo dáng chốt tầm 2.5 giây rồi tự động quay về trạng thái chờ
-    this.actionTimer = setTimeout(() => {
+    // Chỉ giữ lại động tác kết thúc cho Char 4
+    if (this.charId === 4) {
+      this.fadeToAction("hands_forward_gesture", 0.3);
+      
+      // Tạo dáng chốt tầm 2.5 giây rồi tự động quay về trạng thái chờ
+      this.actionTimer = setTimeout(() => {
+        this.setIdle();
+      }, 2500);
+    } else {
+      // Các char khác (1, 2, 3, 5) sẽ quay trở về trạng thái Idle ngay lập tức
       this.setIdle();
-    }, 2500);
+    }
   }
 
   // Cập nhật frame (gọi trong hàm render loop của main.js)
   update(deltaTime) {
     if (this.mixer) {
       this.mixer.update(deltaTime);
+
+      // === ÉP MỞ RỘNG BẮP TAY BẰNG CODE (CÓ PHÂN NHÁNH RIÊNG CHO CHAR 5) ===
+      if (this.mascot) {
+        const leftArm = this.mascot.getObjectByName("mixamorigLeftArm");
+        const rightArm = this.mascot.getObjectByName("mixamorigRightArm");
+        
+        if (leftArm && rightArm) {
+          if (this.charId === 5) {
+            if (this.currentAction === this.actions["focus"]) {
+              leftArm.rotation.z += 0.1; 
+              rightArm.rotation.z -= 0.1;
+            } else {
+              // Còn với các trạng thái khác (Idle, Talking,...) thì dùng mức 0.6 và 0.3 bình thường
+              leftArm.rotation.z += 0.6; 
+              rightArm.rotation.z -= 0.6;
+              leftArm.rotation.x -= 0.3;
+              rightArm.rotation.x -= 0.3;
+            }
+          } else if (this.charId === 1 && this.currentAction === this.actions["waving_gesture"]) {
+            leftArm.rotation.z += 1.0; 
+            rightArm.rotation.z -= 1.0;
+          } else {
+            // Dành cho các Char từ 1 đến 4 (đã đang rất ổn với 0.5)
+            leftArm.rotation.z += 0.5;
+            rightArm.rotation.z -= 0.5;
+          }
+        }
+      }
     }
 
     if (this.faceCamera && this.camera && this.mascot) {
