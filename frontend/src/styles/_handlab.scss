@@ -1507,3 +1507,330 @@
 
 
 
+
+/* =====================================================================
+ * HAND LAB – 3D "ĐẤT SÉT MỀM" (soft clay) – theo ảnh mẫu mới
+ * - Ánh sáng từ TRÊN-TRÁI: viền sáng ở mép trên/trái, gờ tím sẫm mỏng ở
+ *   mép dưới/phải, bóng đổ mềm.
+ * - Không còn viền tím dày quanh thẻ; chỉ giữ viền tím ở tiêu đề, webcam, nút X.
+ * Chỉ áp dụng trong .hand-lab-modal.
+ * ===================================================================== */
+.hand-lab-modal {
+  /* --- bảng màu lấy từ ảnh mẫu --- */
+  --hl-ink:        #5d428d;      /* chữ, icon */
+  --hl-frame-hi:   #f3e6f8;
+  --hl-frame:      #ead9f1;
+  --hl-frame-lo:   #dcc8ea;
+  --hl-trough:     #d3beec;
+  --hl-purple-hi:  #8977bd;
+  --hl-purple:     #7c69af;
+  --hl-purple-lo:  #6e5ca1;
+  --hl-btn-hi:     #917ec0;
+  --hl-btn:        #826faf;
+  --hl-btn-lo:     #695699;
+  --hl-edge:       #574692;      /* gờ dưới của khối tím */
+  --hl-card-hi:    #fbf6fd;
+  --hl-card:       #f4edf7;
+  --hl-card-lo:    #ebe0f1;
+  --hl-card-line:  #d6c4ec;
+  --hl-amber:      #f2a93b;
+  --hl-amber-hi:   #fbc766;
+  --hl-amber-lo:   #e0911a;
+  --hl-shade:      112, 84, 176;
+
+  /* --- 3 kiểu khối --- */
+  --clay:
+    inset 2px 2px 1px rgba(255, 255, 255, 0.95),
+    inset -1px -3px 5px rgba(var(--hl-shade), 0.16),
+    1px 4px 0 rgba(150, 120, 205, 0.32),
+    3px 10px 16px rgba(var(--hl-shade), 0.2);
+  --clay-in:
+    inset 2px 3px 6px rgba(var(--hl-shade), 0.28),
+    inset -1px -2px 2px rgba(255, 255, 255, 0.6),
+    1px 2px 0 rgba(255, 255, 255, 0.55);
+  --clay-purple:
+    inset 1.5px 2px 1px rgba(255, 255, 255, 0.42),
+    inset -1px -3px 5px rgba(30, 20, 90, 0.3),
+    1px 4px 0 var(--hl-edge),
+    3px 11px 16px rgba(60, 44, 130, 0.36);
+}
+
+/* ---------- 1. KHUNG MODAL: tấm đất sét dày, sáng trên-trái ---------- */
+.hand-lab-modal {
+  border: 3px solid;
+  border-color: #f6eafa #e6d4f0 #cfb7e2 #f3e5f8;      /* trên, phải, dưới, trái */
+  border-radius: 40px;
+  background:
+    radial-gradient(80% 60% at 10% 0%, rgba(255, 255, 255, 0.65) 0%, rgba(255, 255, 255, 0) 70%),
+    linear-gradient(160deg, var(--hl-frame-hi) 0%, var(--hl-frame) 45%, var(--hl-frame-lo) 100%);
+  box-shadow:
+    inset 2px 3px 2px rgba(255, 255, 255, 0.9),
+    inset -3px -7px 11px rgba(var(--hl-shade), 0.2),
+    1px 3px 0 #b99fd6,
+    3px 7px 0 #806a9d,
+    10px 36px 60px rgba(54, 34, 110, 0.4);
+}
+
+/* ---------- 2. TIÊU ĐỀ: viên thuốc có viền tím ---------- */
+.hand-lab-modal .hl-title {
+  border: 2px solid #654f97;
+  border-radius: 999px;
+  color: var(--hl-ink);
+  text-shadow: 1px 1px 0 rgba(255, 255, 255, 0.85), -1px -1px 0 rgba(70, 40, 130, 0.18);
+  background: linear-gradient(180deg, #f2e5f8 0%, #dcc8ea 100%);
+  box-shadow:
+    inset 2px 2px 1px rgba(255, 255, 255, 0.95),
+    inset -1px -3px 5px rgba(var(--hl-shade), 0.22),
+    1px 4px 0 rgba(100, 78, 160, 0.5),
+    3px 11px 16px rgba(var(--hl-shade), 0.28);
+}
+
+/* ---------- 3. TAB: rãnh lõm + phím tím ---------- */
+.hand-lab-modal .hl-tabs-wrapper {
+  background: linear-gradient(180deg, #cfb8e8 0%, var(--hl-trough) 100%);
+  border-radius: 22px;
+  box-shadow: var(--clay-in);
+}
+.hand-lab-modal .hl-tab-btn {
+  color: var(--hl-ink);
+  background: transparent;
+  box-shadow: none;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.15s ease;
+}
+.hand-lab-modal .hl-tab-btn:hover:not(.is-active) {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.35));
+  box-shadow: inset 1.5px 2px 1px #fff, 1px 2px 0 rgba(var(--hl-shade), 0.2);
+  transform: translateY(-1px);
+}
+.hand-lab-modal .hl-tab-btn:active:not(.is-active) { transform: translateY(1px); }
+.hand-lab-modal .hl-tab-btn.is-active {
+  color: #fff;
+  text-shadow: 0 -1px 0 rgba(30, 18, 80, 0.4);
+  background: linear-gradient(180deg, var(--hl-purple-hi) 0%, var(--hl-purple) 50%, var(--hl-purple-lo) 100%);
+  box-shadow: var(--clay-purple);
+}
+
+/* ---------- 4. THẺ KEM: viền lilac nhạt, phồng nhẹ ---------- */
+.hand-lab-modal .puzzle-progress-wrap,
+.hand-lab-modal .puzzle-layout .puzzle-level-select,
+.hand-lab-modal #tab-snap-solve:has(#hl-level-view[style*="flex"]) .hl-helper-text,
+.hand-lab-modal .hl-results-panel {
+  background: linear-gradient(180deg, var(--hl-card-hi) 0%, var(--hl-card) 55%, var(--hl-card-lo) 100%);
+  border: 2px solid var(--hl-card-line);
+  border-radius: 20px;
+  box-shadow: var(--clay);
+}
+.hand-lab-modal .puzzle-layout .puzzle-cam-box {
+  background: linear-gradient(180deg, #e0d0f3 0%, #d6c1ee 100%);
+  border: 2px solid #c9b3e8;
+  border-radius: 24px;
+  box-shadow: var(--clay);
+}
+/* khay mảnh ghép: tấm phẳng, viền lilac mảnh */
+.hand-lab-modal .puzzle-board-container {
+  background: linear-gradient(160deg, #eee2f5 0%, #e8daf1 100%);
+  border: 2px solid #d9c6ea;
+  border-radius: 28px;
+  box-shadow:
+    inset 2px 3px 2px rgba(255, 255, 255, 0.9),
+    inset -1px -3px 5px rgba(var(--hl-shade), 0.12),
+    1px 3px 0 rgba(255, 255, 255, 0.55);
+}
+
+/* ---------- 5. CHỮ ---------- */
+.hand-lab-modal .puzzle-progress-wrap .puzzle-progress-text,
+.hand-lab-modal .puzzle-layout .level-header,
+.hand-lab-modal .puzzle-layout .cam-hint { color: var(--hl-ink); }
+
+/* ---------- 6. VIÊN THUỐC HINT ---------- */
+.hand-lab-modal .hl-pill {
+  box-shadow:
+    inset 1.5px 2px 1px rgba(255, 255, 255, 0.55),
+    inset -1px -3px 4px rgba(var(--hl-shade), 0.2),
+    1px 3px 0 rgba(var(--hl-shade), 0.28);
+}
+.hand-lab-modal .hl-pill--amber {
+  color: #5a3500;
+  background: linear-gradient(180deg, var(--hl-amber-hi) 0%, var(--hl-amber) 55%, var(--hl-amber-lo) 100%);
+  box-shadow:
+    inset 1.5px 2px 1px rgba(255, 255, 255, 0.6),
+    inset -1px -3px 4px rgba(130, 70, 0, 0.28),
+    1px 3px 0 #c97b10;
+}
+.hand-lab-modal .hl-pill--purple {
+  color: #fff;
+  background: linear-gradient(180deg, var(--hl-purple-hi) 0%, var(--hl-purple) 55%, var(--hl-purple-lo) 100%);
+  box-shadow:
+    inset 1.5px 2px 1px rgba(255, 255, 255, 0.4),
+    inset -1px -3px 4px rgba(30, 18, 80, 0.3),
+    1px 3px 0 var(--hl-edge);
+}
+.hand-lab-modal .hl-pill--soft {
+  color: var(--hl-ink);
+  background: linear-gradient(180deg, #f6eef9 0%, #e4d5ef 100%);
+}
+
+/* ---------- 7. NÚT TÍM (Play again / Next level / Re-scan) ---------- */
+.hand-lab-modal .hl-action-btn,
+.hand-lab-modal .puzzle-actions .hl-action-btn {
+  position: relative;
+  overflow: hidden;
+  border: 2px solid rgba(87, 70, 146, 0.9);
+  border-radius: 16px;
+  color: #fff;
+  text-shadow: 0 -1px 0 rgba(30, 18, 80, 0.4);
+  background: linear-gradient(180deg, var(--hl-btn-hi) 0%, var(--hl-btn) 50%, var(--hl-btn-lo) 100%);
+  box-shadow: var(--clay-purple);
+  transition: transform 0.12s ease, box-shadow 0.12s ease, filter 0.15s ease;
+}
+.hand-lab-modal .hl-action-btn::before {
+  content: "";
+  position: absolute;
+  left: 8px; right: 8px; top: 3px; height: 38%;
+  border-radius: 12px 12px 50% 50% / 12px 12px 8px 8px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.02) 100%);
+  pointer-events: none;
+}
+.hand-lab-modal .puzzle-actions { margin-bottom: 8px; }
+.hand-lab-modal .hl-action-btn:hover:not(:disabled) { filter: brightness(1.08); transform: translateY(-2px); }
+.hand-lab-modal .hl-action-btn:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow:
+    inset 1.5px 2px 1px rgba(255, 255, 255, 0.3),
+    inset -1px -3px 6px rgba(30, 20, 90, 0.35),
+    0 1px 0 var(--hl-edge),
+    1px 4px 6px rgba(60, 44, 130, 0.3);
+}
+.hand-lab-modal .puzzle-actions #btn-next-level {
+  color: #5a3500;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+  border-color: #c97b10;
+  background: linear-gradient(180deg, var(--hl-amber-hi) 0%, var(--hl-amber) 55%, var(--hl-amber-lo) 100%);
+  box-shadow:
+    inset 1.5px 2px 1px rgba(255, 255, 255, 0.6),
+    inset -1px -4px 6px rgba(130, 70, 0, 0.28),
+    1px 4px 0 #c97b10,
+    3px 11px 16px rgba(150, 90, 10, 0.3);
+}
+
+/* ---------- 8. LEVEL: viên gối ---------- */
+.hand-lab-modal .puzzle-layout .level-dots .level-dot {
+  color: var(--hl-ink);
+  border: 2px solid var(--hl-card-line);
+  background:
+    radial-gradient(circle at 38% 22%, rgba(255, 255, 255, 0.95) 0 12%, rgba(255, 255, 255, 0) 48%),
+    linear-gradient(160deg, #f8f2fb 0%, #e3d5ef 100%);
+  box-shadow:
+    inset 2px 2px 1px rgba(255, 255, 255, 0.95),
+    inset -1px -3px 5px rgba(var(--hl-shade), 0.18),
+    1px 3px 0 rgba(150, 120, 205, 0.3),
+    2px 8px 10px rgba(var(--hl-shade), 0.2);
+  transition: transform 0.12s ease;
+}
+.hand-lab-modal .puzzle-layout .level-dots .level-dot:not(.is-locked):hover { transform: translateY(-2px); }
+.hand-lab-modal .puzzle-layout .level-dots .level-dot:not(.is-locked):active { transform: translateY(1px); }
+.hand-lab-modal .puzzle-layout .level-dots .level-dot.is-active {
+  color: #fff;
+  border-color: var(--hl-purple-lo);
+  background:
+    radial-gradient(circle at 38% 22%, rgba(255, 255, 255, 0.4) 0 12%, rgba(255, 255, 255, 0) 48%),
+    linear-gradient(160deg, var(--hl-purple-hi) 0%, var(--hl-purple-lo) 100%);
+  box-shadow:
+    0 0 0 3px var(--hl-amber),
+    inset 1.5px 2px 1px rgba(255, 255, 255, 0.42),
+    inset -1px -4px 6px rgba(30, 18, 80, 0.35),
+    1px 4px 0 3px var(--hl-amber-lo),
+    3px 11px 12px rgba(var(--hl-shade), 0.35);
+}
+.hand-lab-modal .puzzle-layout .level-dots .level-dot.is-locked {
+  background: linear-gradient(180deg, #ddcdea 0%, #ece1f3 100%);
+  box-shadow: var(--clay-in);
+}
+.hand-lab-modal .puzzle-layout .level-dots .level-arrow {
+  color: #b7a0dc;
+  filter: drop-shadow(1px 1px 0 rgba(255, 255, 255, 0.95));
+}
+.hand-lab-modal .puzzle-layout .level-dots .level-arrow:hover:not(:disabled) { color: var(--hl-purple); }
+
+/* ---------- 9. WEBCAM ---------- */
+.hand-lab-modal .puzzle-layout .puzzle-cam-view,
+.hand-lab-modal .hl-camera-viewport {
+  border-color: #7265ad;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.4), 1px 4px 0 rgba(87, 70, 146, 0.5), 2px 8px 12px rgba(var(--hl-shade), 0.3);
+}
+.hand-lab-modal .puzzle-layout .puzzle-cam-view::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 12;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0) 36%);
+  box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.28), inset 2px 4px 12px rgba(30, 18, 80, 0.3);
+}
+.hand-lab-modal .gesture-chip {
+  color: #fff;
+  text-shadow: 0 -1px 0 rgba(40, 22, 110, 0.35);
+  background: linear-gradient(180deg, #c3b0ee 0%, #a995dc 100%);
+  box-shadow: inset 1.5px 2px 1px rgba(255, 255, 255, 0.55), inset -1px -2px 4px rgba(40, 22, 110, 0.25), 1px 2px 0 rgba(40, 22, 110, 0.3);
+}
+.hand-lab-modal .gesture-chip[data-state="grab"] {
+  color: #5a3500;
+  text-shadow: none;
+  background: linear-gradient(180deg, var(--hl-amber-hi) 0%, var(--hl-amber) 100%);
+}
+.hand-lab-modal .gesture-chip[data-state="open"] {
+  background: linear-gradient(180deg, var(--hl-purple-hi) 0%, var(--hl-purple) 100%);
+}
+
+/* ---------- 10. THANH TIẾN ĐỘ ---------- */
+.hand-lab-modal .puzzle-progress-wrap .puzzle-progress-bar {
+  background: #e3d4ee;
+  box-shadow: inset 2px 3px 4px rgba(var(--hl-shade), 0.28), 0 1px 0 #fff;
+}
+.hand-lab-modal .puzzle-progress-wrap .puzzle-progress-fill {
+  background: linear-gradient(180deg, var(--hl-purple-hi) 0%, var(--hl-purple-lo) 100%);
+  box-shadow: inset 1.5px 2px 1px rgba(255, 255, 255, 0.5), inset -1px -2px 3px rgba(30, 18, 80, 0.3);
+}
+
+/* ---------- 11. TAB MEME SEARCH ---------- */
+.hand-lab-modal .hl-result-tab {
+  color: var(--hl-ink);
+  box-shadow: inset 2px 2px 4px rgba(var(--hl-shade), 0.2), inset -1px -1px 1px rgba(255, 255, 255, 0.6);
+}
+.hand-lab-modal .hl-result-tab.is-active {
+  color: #fff;
+  background: linear-gradient(180deg, var(--hl-purple-hi) 0%, var(--hl-purple-lo) 100%);
+  box-shadow: inset 1.5px 2px 1px rgba(255, 255, 255, 0.4), inset -1px -3px 4px rgba(30, 18, 80, 0.3), 1px 3px 0 var(--hl-edge);
+}
+.hand-lab-modal .hl-meme-card {
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 1px 4px 0 rgba(var(--hl-shade), 0.28), 3px 10px 14px rgba(var(--hl-shade), 0.18);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.hand-lab-modal .hl-meme-card:hover {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 1px 6px 0 rgba(var(--hl-shade), 0.28), 4px 16px 22px rgba(var(--hl-shade), 0.22);
+}
+
+/* ---------- 12. NÚT ĐÓNG (X): khung tím + mặt kem nổi ---------- */
+.hand-lab-modal .forge-modal > .modal-exit-button {
+  color: #634e96;
+  border: 5px solid #7263a3;
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 35% 25%, #fff6fb 0%, rgba(255, 246, 251, 0) 60%),
+    linear-gradient(160deg, #f1e4f6 0%, #dcc8e8 100%);
+  box-shadow:
+    inset 2px 2px 1px rgba(255, 255, 255, 0.95),
+    inset -1px -3px 5px rgba(var(--hl-shade), 0.25),
+    1px 4px 0 #574692,
+    3px 11px 16px rgba(60, 44, 130, 0.36);
+}
+.hand-lab-modal .forge-modal > .modal-exit-button svg {
+  filter: drop-shadow(1px 1px 0 rgba(255, 255, 255, 0.9)) drop-shadow(-1px -1px 0 rgba(60, 40, 140, 0.2));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hand-lab-modal * { transition: none !important; }
+}

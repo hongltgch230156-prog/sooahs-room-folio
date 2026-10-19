@@ -408,3 +408,22 @@
 .auth-scene-svg .sc-glow { opacity: 0; }
 .auth-root.is-dark .auth-scene-svg .sc-glow { opacity: 1; }
 .auth-stars { box-shadow: 673px 318px 0 rgba(255,244,225,0.9), 1343px 108px 0 rgba(255,244,225,0.35), 1691px 202px 0 rgba(255,244,225,0.7), 1203px 128px 0 rgba(255,244,225,0.5), 86px 186px 0 rgba(255,244,225,0.9), 866px 153px 0 rgba(255,244,225,0.5), 195px 879px 0 rgba(255,244,225,0.35), 1703px 263px 0 rgba(255,244,225,0.5), 1301px 136px 0 rgba(255,244,225,0.9), 111px 462px 0 rgba(255,244,225,0.35), 1150px 282px 0 rgba(255,244,225,0.7), 868px 305px 0 rgba(255,244,225,0.35), 1179px 641px 0 rgba(255,244,225,0.5), 221px 394px 0 rgba(255,244,225,0.7), 209px 138px 0 rgba(255,244,225,0.35), 1277px 431px 0 rgba(255,244,225,0.9), 1403px 885px 0 rgba(255,244,225,0.7), 963px 938px 0 rgba(255,244,225,0.7), 623px 518px 0 rgba(255,244,225,0.5), 1441px 509px 0 rgba(255,244,225,0.35), 1186px 624px 0 rgba(255,244,225,0.9), 1802px 713px 0 rgba(255,244,225,0.9), 599px 159px 0 rgba(255,244,225,0.35), 1058px 866px 0 rgba(255,244,225,0.5), 1560px 710px 0 rgba(255,244,225,0.5), 1011px 873px 0 rgba(255,244,225,0.35), 1378px 168px 0 rgba(255,244,225,0.7), 706px 727px 0 rgba(255,244,225,0.9), 1197px 944px 0 rgba(255,244,225,0.35), 1730px 201px 0 rgba(255,244,225,0.7), 980px 143px 0 rgba(255,244,225,0.35), 1507px 644px 0 rgba(255,244,225,0.9), 592px 800px 0 rgba(255,244,225,0.7), 56px 955px 0 rgba(255,244,225,0.7), 354px 249px 0 rgba(255,244,225,0.9), 130px 456px 0 rgba(255,244,225,0.7), 274px 517px 0 rgba(255,244,225,0.9), 810px 1026px 0 rgba(255,244,225,0.35), 350px 929px 0 rgba(255,244,225,0.9), 1135px 579px 0 rgba(255,244,225,0.5), 1687px 891px 0 rgba(255,244,225,0.7), 1456px 860px 0 rgba(255,244,225,0.7), 1408px 789px 0 rgba(255,244,225,0.5), 319px 179px 0 rgba(255,244,225,0.5), 319px 485px 0 rgba(255,244,225,0.5), 34px 1003px 0 rgba(255,244,225,0.5), 548px 587px 0 rgba(255,244,225,0.35), 308px 868px 0 rgba(255,244,225,0.7), 1258px 662px 0 rgba(255,244,225,0.5), 1424px 120px 0 rgba(255,244,225,0.9), 1852px 813px 0 rgba(255,244,225,0.9), 827px 817px 0 rgba(255,244,225,0.35), 996px 830px 0 rgba(255,244,225,0.35), 400px 147px 0 rgba(255,244,225,0.5), 912px 342px 0 rgba(255,244,225,0.35), 706px 117px 0 rgba(255,244,225,0.35), 10px 319px 0 rgba(255,244,225,0.35), 754px 62px 0 rgba(255,244,225,0.35), 1800px 435px 0 rgba(255,244,225,0.9), 314px 526px 0 rgba(255,244,225,0.7), 1243px 755px 0 rgba(255,244,225,0.9), 261px 246px 0 rgba(255,244,225,0.9), 964px 993px 0 rgba(255,244,225,0.9), 648px 185px 0 rgba(255,244,225,0.5), 219px 711px 0 rgba(255,244,225,0.7), 990px 340px 0 rgba(255,244,225,0.35), 430px 750px 0 rgba(255,244,225,0.5), 1423px 65px 0 rgba(255,244,225,0.7), 1326px 196px 0 rgba(255,244,225,0.7), 1071px 761px 0 rgba(255,244,225,0.5); }
+
+/* ---------- Quên mật khẩu ---------- */
+.auth-reset { display: none; }
+.auth-root[data-mode="forgot"] .auth-reset { display: block; }
+.auth-root[data-mode="forgot"] .auth-form,
+.auth-root[data-mode="forgot"] .auth-google,
+.auth-root[data-mode="forgot"] .auth-divider,
+.auth-root[data-mode="forgot"] .auth-card > .auth-switch { display: none; }
+
+.auth-reset-title { margin: 0 0 6px; font-size: 18px; font-weight: 700; }
+.auth-reset-hint { margin: 0 0 16px; font-size: 13.5px; color: var(--a-muted); }
+
+.auth-reset-step2 { display: none; }
+.auth-root[data-step="2"] .auth-reset-step2 { display: block; }
+
+.auth-resend:disabled { opacity: 0.6; cursor: default; text-decoration: none; }
+
+/* Trang đăng nhập phải nằm TRÊN màn hình Enter / video vịt */
+.auth-root { z-index: 2147483000; }

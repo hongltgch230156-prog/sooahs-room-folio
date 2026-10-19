@@ -21,6 +21,14 @@ const userSchema = new mongoose.Schema(
       completed: { type: [Number], default: [] },
       best: { type: mongoose.Schema.Types.Mixed, default: {} },
     },
+
+        // Quên mật khẩu: chỉ lưu mã đã băm, không lưu mã gốc
+    resetCodeHash: { type: String, select: false },
+    resetCodeExpires: { type: Date, select: false },
+    resetAttempts: { type: Number, default: 0, select: false },
+    resetSentAt: { type: Date, select: false },
+    // Dùng để vô hiệu hóa token cũ sau khi đổi mật khẩu
+    passwordChangedAt: { type: Date },
   },
   { timestamps: true }
 );

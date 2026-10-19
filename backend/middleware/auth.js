@@ -13,8 +13,10 @@ async function requireAuth(req, res, next) {
     if (!token) return res.status(401).json({ error: 'Bạn cần đăng nhập để tiếp tục.' });
 
     const payload = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(payload.id).select('email name avatar');
+    const user = await User.findById(payload.id).select('email name avatar passwordChangedAt');
     if (!user) return res.status(401).json({ error: 'Tài khoản không còn tồn tại.' });
+    if (user.passwordChangedAt && payload.iat * 1000 < user.passwordChangedAt.getTime())
+      return res.status(401).json({ error: 'Mật khẩu đã thay đổi, vui lòng đăng nhập lại.' });
 
     req.user = user;
     next();

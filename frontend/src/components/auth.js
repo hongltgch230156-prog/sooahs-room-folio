@@ -67,7 +67,11 @@ async function authRequest(path, body) {
     throw new Error("Không kết nối được máy chủ. Hãy kiểm tra backend đã chạy chưa.");
   }
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || "Có lỗi xảy ra, vui lòng thử lại.");
+  if (!res.ok) {
+    const err = new Error(data.error || "Có lỗi xảy ra, vui lòng thử lại.");
+    err.code = data.code;
+    throw err;
+  }
   return data;
 }
 
@@ -232,6 +236,37 @@ function buildMarkup() {
         <button class="auth-submit" type="submit">Đăng nhập</button>
       </form>
 
+      <form class="auth-reset" novalidate>
+        <h2 class="auth-reset-title">Quên mật khẩu</h2>
+        <p class="auth-reset-hint"></p>
+        <div class="auth-group">
+          <div class="auth-label-row"><label class="auth-label" for="auth-reset-email">Email</label></div>
+          <div class="auth-field" data-field="auth-reset-email">
+            ${ICONS.mail}
+            <input class="auth-input" id="auth-reset-email" type="email" placeholder="ban@wondera.app"
+                   autocomplete="email" inputmode="email" style="padding-right:16px" />
+          </div>
+        </div>
+        <div class="auth-reset-step2">
+          <div class="auth-group">
+            <div class="auth-label-row">
+              <label class="auth-label" for="auth-reset-code">Mã xác nhận</label>
+              <button class="auth-forgot auth-resend" type="button">Gửi lại mã</button>
+            </div>
+            <div class="auth-field" data-field="auth-reset-code">
+              ${ICONS.lock}
+              <input class="auth-input" id="auth-reset-code" type="text" inputmode="numeric" maxlength="6"
+                     placeholder="123456" autocomplete="one-time-code" style="padding-right:16px" />
+            </div>
+          </div>
+          ${pwField("auth-reset-password", "Mật khẩu mới", "new-password")}
+          ${pwField("auth-reset-confirm", "Xác nhận mật khẩu mới", "new-password")}
+        </div>
+        <p class="auth-error" role="alert"></p>
+        <button class="auth-submit auth-reset-submit" type="submit">Gửi mã xác nhận</button>
+        <p class="auth-switch"><button class="auth-back" type="button">← Quay lại đăng nhập</button></p>
+      </form>
+
       <p class="auth-switch"><span class="auth-switch-text">Chưa có tài khoản?</span> <button class="auth-switch-btn" type="button">Đăng ký ngay</button></p>
     </section>
 
@@ -271,6 +306,16 @@ function createAuthUI(onSuccess) {
   const switchText = $(".auth-switch-text");
   const switchBtn = $(".auth-switch-btn");
   const forgotBtn = $(".auth-forgot");
+  const resetForm = $(".auth-reset");
+  const resetHint = $(".auth-reset-hint");
+  const resetEmail = $("#auth-reset-email");
+  const resetCode = $("#auth-reset-code");
+  const resetPw = $("#auth-reset-password");
+  const resetConfirm = $("#auth-reset-confirm");
+  const resetErrorBox = resetForm.querySelector(".auth-error");
+  const resetSubmit = $(".auth-reset-submit");
+  const resendBtn = $(".auth-resend");
+  const backBtn = $(".auth-back");
   const eyeBtns = [...root.querySelectorAll(".auth-eye")];
   const reveals = [...root.querySelectorAll(".auth-field")]
     .map((f) => ({ input: f.querySelector("input[type=password]"), el: f.querySelector(".auth-reveal") }))
@@ -288,15 +333,18 @@ function createAuthUI(onSuccess) {
 
   /* ---------- thông báo ---------- */
   function showError(msg, info = false) {
-    errorBox.textContent = msg;
-    errorBox.classList.remove("show");
-    void errorBox.offsetWidth; // restart animation
-    errorBox.classList.add("show");
-    errorBox.classList.toggle("is-info", info);
+    const box = mode === "forgot" ? resetErrorBox : errorBox;
+    box.textContent = msg;
+    box.classList.remove("show");
+    void box.offsetWidth; // restart animation
+    box.classList.add("show");
+    box.classList.toggle("is-info", info);
   }
   function clearErrors() {
-    errorBox.classList.remove("show", "is-info");
-    errorBox.textContent = "";
+    [errorBox, resetErrorBox].forEach((box) => {
+      box.classList.remove("show", "is-info");
+      box.textContent = "";
+    });
     root.querySelectorAll(".auth-field.is-invalid").forEach((f) => f.classList.remove("is-invalid"));
   }
   function markInvalid(input) {
@@ -319,9 +367,126 @@ function createAuthUI(onSuccess) {
     clearErrors();
   }
   switchBtn.addEventListener("click", () => setMode(mode === "login" ? "register" : "login"));
-  forgotBtn.addEventListener("click", () =>
-    showError("Tính năng khôi phục mật khẩu sắp ra mắt. Tạm thời hãy đăng nhập bằng Google nhé!", true)
-  );
+  /* ---------- Quên mật khẩu ---------- */
+  let resetStep = 1;
+  let resendTimer = null;
+
+  function setResetStep(step) {
+    resetStep = step;
+    root.dataset.step = String(step);
+    resetEmail.readOnly = step === 2;
+    resetSubmit.textContent = step === 1 ? "Gửi mã xác nhận" : "Đặt lại mật khẩu";
+    resetHint.textContent =
+      step === 1
+        ? "Nhập email đã đăng ký, chúng mình sẽ gửi mã xác nhận 6 số."
+        : "Nhập mã vừa nhận qua email và đặt mật khẩu mới.";
+    (step === 1 ? resetEmail : resetCode).focus();
+  }
+
+  function startResendCountdown(sec = 60) {
+    clearInterval(resendTimer);
+    let left = sec;
+    resendBtn.disabled = true;
+    const tick = () => {
+      resendBtn.textContent = left > 0 ? `Gửi lại sau ${left}s` : "Gửi lại mã";
+      if (left-- <= 0) {
+        clearInterval(resendTimer);
+        resendBtn.disabled = false;
+      }
+    };
+    tick();
+    resendTimer = setInterval(tick, 1000);
+  }
+
+  function openForgot() {
+    setLights(false);
+    clearErrors();
+    resetEmail.value = emailInput.value.trim();
+    resetCode.value = resetPw.value = resetConfirm.value = "";
+    syncReveals();
+    mode = "forgot";
+    root.dataset.mode = "forgot";
+    setResetStep(1);
+  }
+
+  function closeForgot(prefillEmail) {
+    clearInterval(resendTimer);
+    setMode("login");
+    if (prefillEmail) emailInput.value = prefillEmail;
+    pwInput.value = "";
+    syncReveals();
+  }
+
+  function setResetBusy(v) {
+    busy = v;
+    resetSubmit.disabled = v;
+    resetSubmit.classList.toggle("is-loading", v);
+  }
+
+  forgotBtn.addEventListener("click", openForgot);
+  backBtn.addEventListener("click", () => closeForgot());
+
+  resendBtn.addEventListener("click", async () => {
+    if (busy || resendBtn.disabled) return;
+    clearErrors();
+    try {
+      const data = await authRequest("/forgot-password", { email: resetEmail.value.trim() });
+      startResendCountdown();
+      showError(data.message, true);
+    } catch (err) {
+      showError(err.message);
+    }
+  });
+
+  resetForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (busy) return;
+    clearErrors();
+    const email = resetEmail.value.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      markInvalid(resetEmail);
+      return showError("Vui lòng nhập một địa chỉ email hợp lệ.");
+    }
+
+    // Bước 1: xin mã
+    if (resetStep === 1) {
+      setResetBusy(true);
+      try {
+        const data = await authRequest("/forgot-password", { email });
+        setResetStep(2);
+        startResendCountdown();
+        showError(data.message, true);
+      } catch (err) {
+        showError(err.message);
+      }
+      return setResetBusy(false);
+    }
+
+    // Bước 2: nhập mã + mật khẩu mới
+    const code = resetCode.value.trim();
+    const password = resetPw.value;
+    if (!/^\d{6}$/.test(code)) {
+      markInvalid(resetCode);
+      return showError("Mã xác nhận gồm 6 chữ số.");
+    }
+    if (password.length < 8) {
+      markInvalid(resetPw);
+      return showError("Mật khẩu cần ít nhất 8 ký tự.");
+    }
+    if (password !== resetConfirm.value) {
+      markInvalid(resetConfirm);
+      return showError("Mật khẩu xác nhận không khớp.");
+    }
+    setResetBusy(true);
+    try {
+      const data = await authRequest("/reset-password", { email, code, password });
+      closeForgot(email);
+      showError(data.message || "Đặt lại mật khẩu thành công. Hãy đăng nhập.", true);
+    } catch (err) {
+      showError(err.message);
+    }
+    setResetBusy(false);
+  });
 
   /* ---------- đèn pin ---------- */
   function syncReveals() {
