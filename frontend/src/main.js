@@ -13,6 +13,7 @@ import { MascotController } from "./components/MascotController.js";
 import { ChatbotUI } from "./components/ChatbotUI.js";
 import { initHandLab } from "./components/handlab.js";
 import { initAuth } from "./components/auth.js";
+import { createVoiceApi } from "./components/voice.js";
 initAuth();
 
 /** -------------------------- Audio setup -------------------------- */
@@ -1866,44 +1867,21 @@ function shouldUseOriginalMesh(objectName) {
   );
 }
 
-let talkingTimeout = null;
-
-async function sendChatMessage(text) {
+async function sendChatMessage(text, lang = "en") {
   try {
-    if (talkingTimeout) clearTimeout(talkingTimeout);
-    // 1. NGƯỜI DÙNG VỪA GỬI -> ÉP MASCOT CHUYỂN SANG TRẠNG THÁI "SUY NGHĨ"
     if (chatbotMascot) chatbotMascot.setThinking();
-
-    // 2. GỬI YÊU CẦU XUỐNG BACKEND CỦA BẠN (Cổng 3000 đang chạy server.js)
     const response = await fetch("http://localhost:3000/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         message: text,
-        characterId: chatbotMascot.charId // Gửi kèm ID để Backend nạp đúng tính cách
-      })
+        characterId: chatbotMascot.charId,
+        language: lang,
+      }),
     });
-
     if (!response.ok) throw new Error("Backend API Error");
-    
     const data = await response.json();
-
-    // 3. AI ĐÃ TRẢ LỜI -> ÉP MASCOT CHUYỂN SANG TRẠNG THÁI "ĐANG NÓI CHUYỆN"
-    if (chatbotMascot) chatbotMascot.setTalking();
-
-    // 4. ĐỒNG BỘ THỜI GIAN MÚA TAY VỚI ĐỘ DÀI CÂU TRẢ LỜI
-    // Tốc độ đọc trung bình là 250ms/từ. Múa tối thiểu 2.5 giây.
-    const wordCount = data.reply.split(" ").length;
-    const talkingTime = Math.max(2500, wordCount * 250); 
-
-    // Kích hoạt hành động chốt (vỗ tay, chỉ tay...) sau khi đã "nói xong"
-    talkingTimeout = setTimeout(() => {
-      if (chatbotMascot) chatbotMascot.setFinishTalking();
-    }, talkingTime);
-
-    // Trả đoạn text về cho giao diện ChatbotUI hiển thị lên khung chat
-    return data.reply;
-
+    return data.reply; // ChatbotUI sẽ gọi onSpeakStart/onSpeakEnd đúng lúc
   } catch (error) {
     console.error("Frontend Chat Error:", error);
     if (chatbotMascot) chatbotMascot.setFinishTalking();
@@ -2240,6 +2218,10 @@ window.addEventListener(
 
 window.addEventListener("click", handleRaycasterInteraction);
 
+const voiceApi = createVoiceApi({
+  baseUrl: "http://localhost:3000",
+});
+
 const chatbotUI = new ChatbotUI({
   characters,
   initialCharacterId: initialCharacter.id,
@@ -2259,6 +2241,10 @@ const chatbotUI = new ChatbotUI({
     }
   },
   onSend: sendChatMessage,
+  onTranscribe: (blob, lang, meta) => voiceApi.transcribe(blob, lang, meta),
+  onSynthesize: (text, characterId, lang) => voiceApi.synthesize(text, characterId, lang),
+  onSpeakStart: () => chatbotMascot.setTalking(),
+  onSpeakEnd: () => chatbotMascot.setFinishTalking(),
   onSelectCharacter: async (id) => {
   await chatbotMascot.changeCharacter(id);
   localStorage.setItem("selectedCharacterId", String(id));

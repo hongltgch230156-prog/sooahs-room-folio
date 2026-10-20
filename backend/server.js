@@ -567,7 +567,7 @@ Return ONLY valid JSON. Exactly this structure:
             ]
           }
         ],
-        max_tokens: 800,
+        max_tokens: 1200,
         temperature: 0.2 // Giữ temperature thấp để JSON trả về chuẩn xác
       })
     });
@@ -685,8 +685,9 @@ Return ONLY valid JSON. Exactly this structure:
 // ----------------------------------------------------------
 app.post("/api/meme/rerank", async (req, res) => {
   try {
-    const { userImage, candidates } = req.body;
-    if (!userImage || !candidates || candidates.length === 0) {
+    const { userImage, candidates: rawCandidates } = req.body;
+    const candidates = Array.isArray(rawCandidates) ? rawCandidates.slice(0, 24) : [];
+    if (!userImage || candidates.length === 0) {
       throw new Error("Thiếu dữ liệu ảnh để Rerank.");
     }
 
@@ -734,7 +735,7 @@ Return ONLY a valid JSON Array of objects in this exact format:
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
         messages: [{ role: "user", content: messagesContent }],
-        max_tokens: 800,
+        max_tokens: 1200,
         temperature: 0.1
       })
     });
@@ -822,6 +823,136 @@ app.post("/api/meme/static-search", async (req, res) => {
   } catch (error) {
     console.error("[Static Search] Error:", error);
     res.status(500).json({ error: error.message });
+  }
+});
+
+// =====================================================================
+// VOICE CHAT (EN + VI) - DÁN VÀO server.js
+// Vị trí: SAU dòng  app.use('/api', requireAuth);  và SAU khai báo `multer`/`fal`
+// (ngay dưới API /api/chat). Xoá bản /api/stt + /api/tts cũ trước khi dán.
+// =====================================================================
+
+// ---- Cấu hình ----
+const STT_MODEL = 'fal-ai/wizper';                       // Whisper v3 bản tối ưu của fal
+const TTS_MODEL = 'fal-ai/elevenlabs/tts/turbo-v2.5';    // 32 ngôn ngữ, gồm cả tiếng Việt
+
+// Mỗi mascot một giọng đọc CHO TỪNG NGÔN NGỮ (en / vi).
+// Đổi tên voice theo danh sách trong Playground của model TTS. Muốn giọng tiếng Việt
+// khác tiếng Anh thì chỉ cần sửa cột `vi`.
+const VOICES = {
+  1: { en: 'Aria',    vi: 'Aria'    }, // Nina  - dịu dàng
+  2: { en: 'Roger',   vi: 'Roger'   }, // Milo  - năng động
+  3: { en: 'Sarah',   vi: 'Sarah'   }, // Juno  - tự tin
+  4: { en: 'Charlie', vi: 'Charlie' }, // Mochi - lười biếng
+  5: { en: 'Laura',   vi: 'Laura'   }, // Roxy  - tinh nghịch
+};
+
+// Upload riêng cho audio: giới hạn 10MB để tránh bị spam file lớn
+const voiceUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 },
+});
+
+// Gọi model fal NHANH: chạy trực tiếp (không qua hàng đợi + polling).
+// Nếu fal báo lỗi phía server (5xx/timeout) mới thử lại bằng hàng đợi.
+async function callFal(model, input) {
+  try {
+    return await fal.run(model, { input });
+  } catch (error) {
+    if (error?.status && error.status < 500) throw error; // lỗi 4xx: thử lại cũng vô ích
+    console.warn(`fal.run(${model}) failed, retrying via queue:`, error?.message || error);
+    return fal.subscribe(model, { input, pollInterval: 300 });
+  }
+}
+
+// Whisper hay "bịa" ra những câu này khi clip gần như im lặng / toàn tiếng ồn
+const HALLUCINATION_ALWAYS =
+  /(subtitles? by|amara\.org|hãy subscribe|đăng ký kênh|ghiền mì gõ|like và subscribe|thanks for watching|thank you for watching)/i;
+const HALLUCINATION_IF_SHORT =
+  /^\s*(thank you( so much)?|thanks|you|bye|bye-bye|okay|oh|uh|um|cảm ơn( các bạn)?|xin chào)[.!?,\s]*$/i;
+
+function isLikelyHallucination(text, voicedMs) {
+  if (HALLUCINATION_ALWAYS.test(text)) return true;
+  // Clip có <0.9s tiếng nói mà ra đúng những câu cửa miệng này => gần như chắc chắn là ảo giác
+  return Number.isFinite(voicedMs) && voicedMs < 900 && HALLUCINATION_IF_SHORT.test(text);
+}
+
+// Bỏ những thứ TTS đọc rất kỳ: *yawn* (hành động của Mochi), markdown, emoji, link
+function cleanForSpeech(text) {
+  return String(text || '')
+    .replace(/\*[^*]*\*/g, ' ')                  // *yawn*  -> bỏ hẳn
+    .replace(/https?:\/\/\S+/g, ' ')             // link
+    .replace(/[`#>_~]/g, ' ')                    // ký tự markdown
+    .replace(/\p{Extended_Pictographic}/gu, ' ') // emoji
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 600);                              // chặn text quá dài => tốn tiền
+}
+
+// Chế độ AUTO: đoán ngôn ngữ của câu trả lời để chọn giọng đọc (có dấu tiếng Việt => vi)
+const VIETNAMESE_CHARS = /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i;
+
+// --- API 6: Speech-to-Text (giọng nói -> chữ) ---
+app.post('/api/stt', voiceUpload.single('audio'), async (req, res) => {
+  try {
+    const file = req.file;
+    if (!file || file.size < 2000) {
+      return res.status(400).json({ error: 'Không nhận được âm thanh (trống hoặc quá ngắn).' });
+    }
+
+    // Trình duyệt đo được rất ít tiếng nói => khỏi gọi Wizper (nhanh hơn + đỡ tốn tiền + hết "Thank you")
+    const voicedMs = req.body.voicedMs !== undefined ? Number(req.body.voicedMs) : NaN;
+    if (Number.isFinite(voicedMs) && voicedMs < 350) return res.json({ text: '' });
+
+    // Bỏ phần ";codecs=opus" -> "audio/webm". Chrome/Firefox ra webm, Safari ra mp4 (m4a)
+    const mime = (file.mimetype || 'audio/webm').split(';')[0];
+    const ext = mime.includes('mp4') ? 'm4a' : mime.includes('ogg') ? 'ogg' : 'webm';
+
+    // fal KHÔNG nhận audio dạng data URI ("Unsupported data URL") => upload lên fal storage lấy URL
+    const audioFile = typeof File !== 'undefined'
+      ? new File([file.buffer], `voice.${ext}`, { type: mime })
+      : new Blob([file.buffer], { type: mime });
+    const audioUrl = await fal.storage.upload(audioFile);
+
+    // "en" | "vi" | trống (= AUTO, Wizper tự nhận diện tiếng Anh/Việt)
+    const language = ['en', 'vi'].includes(req.body.language) ? req.body.language : null;
+
+    const result = await callFal(STT_MODEL, { audio_url: audioUrl, task: 'transcribe', language });
+
+    let text = String(result?.data?.text ?? result?.text ?? '').trim();
+    if (isLikelyHallucination(text, voicedMs)) {
+      console.log('STT: bỏ qua kết quả nghi ảo giác:', JSON.stringify(text));
+      text = '';
+    }
+    res.json({ text });
+  } catch (error) {
+    console.error('STT error:', error);
+    res.status(500).json({ error: 'Không nhận diện được giọng nói.' });
+  }
+});
+
+// --- API 7: Text-to-Speech (chữ -> giọng nói của mascot) ---
+app.post('/api/tts', async (req, res) => {
+  try {
+    const { text, characterId, language } = req.body;
+    const clean = cleanForSpeech(text);
+    if (!clean) return res.json({ audioUrl: null });
+
+    // en / vi theo lựa chọn của người dùng; auto => đoán theo chính câu trả lời
+    const lang = language === 'vi' || (language === 'auto' && VIETNAMESE_CHARS.test(clean)) ? 'vi' : 'en';
+
+    const result = await callFal(TTS_MODEL, {
+      text: clean,
+      voice: (VOICES[characterId] || VOICES[1])[lang],
+      speed: 1,
+    });
+
+    const audioUrl = result?.data?.audio?.url ?? result?.audio?.url;
+    if (!audioUrl) throw new Error('TTS không trả về audio');
+    res.json({ audioUrl });
+  } catch (error) {
+    console.error('TTS error:', error);
+    res.status(500).json({ error: 'Không tạo được giọng nói.' });
   }
 });
 

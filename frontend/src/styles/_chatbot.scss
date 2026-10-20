@@ -367,3 +367,95 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+
+// =====================================================================
+// Dán vào CUỐI file _chatbot.scss (sau khối #mic-button hiện có)
+// Màu lấy theo palette tím/cam sẵn có của bạn.
+// =====================================================================
+
+// Đang ghi âm: nút đỏ, phình theo âm lượng giọng nói (--mic-level do JS gán, 0..1)
+#chat-form #mic-button.is-recording {
+  background: #ff6b6b;
+  color: #fff;
+  transform: scale(calc(1 + var(--mic-level, 0) * 0.3));
+  animation: mic-pulse 1.4s ease-out infinite;
+}
+
+#chat-form #mic-button.is-recording svg { color: #fff; }
+
+// Đang gửi lên server / chờ AI trả lời
+#chat-form #mic-button.is-busy {
+  cursor: progress;
+  opacity: 0.55;
+  animation: mic-busy 1s ease-in-out infinite;
+}
+
+// Mascot đang nói: bấm vào để ngắt
+#chat-form #mic-button.is-speaking {
+  background: rgba(145, 133, 171, 0.2);
+  color: #796b96;
+  animation: mic-speaking 1.1s ease-in-out infinite;
+}
+
+@keyframes mic-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(255, 107, 107, 0.55); }
+  70%  { box-shadow: 0 0 0 12px rgba(255, 107, 107, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 107, 107, 0); }
+}
+
+@keyframes mic-busy {
+  0%, 100% { opacity: 0.35; }
+  50%      { opacity: 0.75; }
+}
+
+@keyframes mic-speaking {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(145, 133, 171, 0.35); }
+  50%      { box-shadow: 0 0 0 7px rgba(145, 133, 171, 0); }
+}
+
+// Tôn trọng người dùng tắt hiệu ứng chuyển động
+@media (prefers-reduced-motion: reduce) {
+  #chat-form #mic-button.is-recording,
+  #chat-form #mic-button.is-busy,
+  #chat-form #mic-button.is-speaking { animation: none; }
+}
+
+// Bộ chọn ngôn ngữ nói: hai nút nhỏ EN | VI nằm ngay trước nút mic (JS tự tạo, không cần sửa HTML)
+#chat-form #lang-switch {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 2px;
+  margin-right: 2px;
+  padding: 2px;
+  border-radius: 999px;
+  background: rgba(145, 133, 171, 0.14);
+
+  // ghi đè quy tắc chung `.chat-form button` (36x36, tròn) cho hai nút nhỏ này
+  button {
+    flex: 0 0 auto;
+    width: auto;
+    height: 22px;
+    min-width: 26px;
+    padding: 0 7px;
+    border-radius: 999px;
+    font-family: inherit;
+    font-size: 10px;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: 0.06em;
+    color: #8c829e;
+    background: transparent;
+    transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+
+    &:hover { color: #796b96; }
+    &:focus-visible { outline: 2px solid #ff9b70; outline-offset: 1px; }
+
+    &.is-active {
+      color: #fff;
+      background: #9185ab;
+      box-shadow: 0 1px 4px rgba(121, 107, 150, 0.35);
+    }
+  }
+}
